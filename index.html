@@ -681,7 +681,7 @@
             
             <div class="auth-toggle">
                 <span id="authToggleText">Don't have an account? </span>
-                <a onclick="toggleAuthMode()" id="authToggleLink">Sign up</a>
+                <a id="authToggleLink">Sign up</a>
             </div>
         </div>
     </div>
@@ -1015,6 +1015,7 @@
             });
 
             document.getElementById('authForm').addEventListener('submit', handleAuth);
+            document.getElementById('authToggleLink').addEventListener('click', toggleAuthMode);
         }
 
         function toggleAuthMode() {

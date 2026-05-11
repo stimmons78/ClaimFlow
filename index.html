@@ -1572,12 +1572,31 @@
         async function updateClaimStatus() {
             if (!selectedClaimId || !currentUser) return;
             const newStatus = document.getElementById('claimStatusSelect').value;
+            const oldClaim = allClaims.find(c => c.id === selectedClaimId);
+            
+            if (!oldClaim || oldClaim.status === newStatus) return;
 
             try {
                 await db.collection('users').doc(currentUser.uid).collection('claims').doc(selectedClaimId).update({
                     status: newStatus
                 });
+                
+                // Auto-create diary entry for status change
+                const statusLabels = {
+                    'new': 'New',
+                    'in-progress': 'In Progress',
+                    'closed': 'Closed'
+                };
+                
+                await db.collection('users').doc(currentUser.uid).collection('diary').add({
+                    claimId: selectedClaimId,
+                    text: `Status changed: ${statusLabels[oldClaim.status] || oldClaim.status} → ${statusLabels[newStatus] || newStatus}`,
+                    createdAt: new Date(),
+                    auto: true
+                });
+                
                 await loadUserData();
+                renderClaimDiary();
             } catch (error) {
                 console.error('Error updating status:', error);
             }
@@ -1688,17 +1707,103 @@
             }
 
             container.innerHTML = claimSchedules.map(s => {
-                const overdue = isOverdue(s.date, s.time);
+                const completed = s.completed === true;
+                const overdue = !completed && isOverdue(s.date, s.time);
                 return `
-                    <div class="item-card ${overdue ? 'overdue' : ''}">
-                        <div class="item-title">${s.activity}</div>
-                        <div class="item-meta ${overdue ? 'overdue' : ''}">${overdue ? '⚠️ OVERDUE: ' : ''}${new Date(s.date).toLocaleDateString()}${s.time ? ' at ' + s.time : ''}</div>
+                    <div class="item-card ${overdue ? 'overdue' : ''}" style="${completed ? 'opacity: 0.6; border-left-color: #27ae60;' : ''}">
+                        <div style="display: flex; align-items: start; gap: 8px;">
+                            <input type="checkbox" ${completed ? 'checked' : ''} onchange="toggleScheduleComplete('${s.id}', this.checked)" style="margin-top: 3px; cursor: pointer;">
+                            <div style="flex: 1;">
+                                <div class="item-title" style="${completed ? 'text-decoration: line-through;' : ''}">${s.activity}</div>
+                                <div class="item-meta ${overdue ? 'overdue' : ''}">${completed ? '✓ Completed' : (overdue ? '⚠️ OVERDUE: ' : '')}${new Date(s.date).toLocaleDateString()}${s.time ? ' at ' + s.time : ''}</div>
+                            </div>
+                        </div>
                         <div class="item-actions">
                             <button class="item-btn" onclick="deleteSchedule('${s.id}')">Delete</button>
                         </div>
                     </div>
                 `;
             }).join('');
+        }
+        
+        async function toggleScheduleComplete(scheduleId, isCompleted) {
+            if (!currentUser) return;
+            
+            const schedule = allSchedules.find(s => s.id === scheduleId);
+            if (!schedule) return;
+            
+            try {
+                await db.collection('users').doc(currentUser.uid).collection('schedules').doc(scheduleId).update({
+                    completed: isCompleted,
+                    completedAt: isCompleted ? new Date() : null
+                });
+                
+                // Auto-create diary entry when marked complete
+                if (isCompleted && selectedClaimId) {
+                    await db.collection('users').doc(currentUser.uid).collection('diary').add({
+                        claimId: selectedClaimId,
+                        text: `✓ Completed: ${schedule.activity}`,
+                        createdAt: new Date(),
+                        auto: true
+                    });
+                    
+                    // Suggest next action based on activity completed
+                    suggestNextAction(schedule.activity);
+                }
+                
+                await loadUserData();
+                renderClaimSchedule();
+                renderClaimDiary();
+                updateOverdueCounts();
+            } catch (error) {
+                console.error('Error toggling schedule:', error);
+            }
+        }
+        
+        function suggestNextAction(completedActivity) {
+            const suggestions = {
+                'Initial Inspection': 'Submit for Review',
+                'Supplemental Inspection': 'Submit for Review',
+                'Contractor Meeting': 'Get Estimate',
+                'Settlement Meeting': 'Finalize Settlement',
+                'Document Review': 'Submit File',
+                'Appointment': 'Complete Inspection',
+                'Planned Inspection': 'Complete Inspection',
+                'Inspection Completed': 'Submit for Review'
+            };
+            
+            const nextAction = suggestions[completedActivity];
+            if (nextAction) {
+                // Set the activity in the schedule input
+                const activitySelect = document.getElementById('scheduleActivity');
+                if (activitySelect) {
+                    // Check if option exists, if not add it
+                    let optionExists = false;
+                    for (let opt of activitySelect.options) {
+                        if (opt.value === nextAction) {
+                            optionExists = true;
+                            break;
+                        }
+                    }
+                    if (!optionExists) {
+                        const newOpt = document.createElement('option');
+                        newOpt.value = nextAction;
+                        newOpt.textContent = nextAction;
+                        activitySelect.appendChild(newOpt);
+                    }
+                    activitySelect.value = nextAction;
+                    
+                    // Highlight the schedule section briefly
+                    const scheduleSection = activitySelect.closest('.detail-section');
+                    if (scheduleSection) {
+                        scheduleSection.style.background = '#e3f2fd';
+                        scheduleSection.style.transition = 'background 0.3s';
+                        setTimeout(() => {
+                            scheduleSection.style.background = '';
+                        }, 2000);
+                    }
+                }
+            }
         }
 
         function renderClaimTasks() {
@@ -1711,17 +1816,53 @@
             }
 
             container.innerHTML = claimTasks.map(t => {
-                const overdue = t.dueDate && isOverdue(t.dueDate);
+                const completed = t.completed === true;
+                const overdue = !completed && t.dueDate && isOverdue(t.dueDate);
                 return `
-                    <div class="item-card ${overdue ? 'overdue' : ''}">
-                        <div class="item-title">${t.text}</div>
-                        ${t.dueDate ? `<div class="item-meta ${overdue ? 'overdue' : ''}">${overdue ? '⚠️ OVERDUE: ' : ''}${new Date(t.dueDate).toLocaleDateString()}</div>` : ''}
+                    <div class="item-card ${overdue ? 'overdue' : ''}" style="${completed ? 'opacity: 0.6; border-left-color: #27ae60;' : ''}">
+                        <div style="display: flex; align-items: start; gap: 8px;">
+                            <input type="checkbox" ${completed ? 'checked' : ''} onchange="toggleTaskComplete('${t.id}', this.checked)" style="margin-top: 3px; cursor: pointer;">
+                            <div style="flex: 1;">
+                                <div class="item-title" style="${completed ? 'text-decoration: line-through;' : ''}">${t.text}</div>
+                                ${t.dueDate ? `<div class="item-meta ${overdue ? 'overdue' : ''}">${completed ? '✓ Done' : (overdue ? '⚠️ OVERDUE: ' : '')}${new Date(t.dueDate).toLocaleDateString()}</div>` : ''}
+                            </div>
+                        </div>
                         <div class="item-actions">
                             <button class="item-btn" onclick="deleteTask('${t.id}')">Delete</button>
                         </div>
                     </div>
                 `;
             }).join('');
+        }
+        
+        async function toggleTaskComplete(taskId, isCompleted) {
+            if (!currentUser) return;
+            
+            const task = allTasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            try {
+                await db.collection('users').doc(currentUser.uid).collection('tasks').doc(taskId).update({
+                    completed: isCompleted,
+                    completedAt: isCompleted ? new Date() : null
+                });
+                
+                if (isCompleted && selectedClaimId) {
+                    await db.collection('users').doc(currentUser.uid).collection('diary').add({
+                        claimId: selectedClaimId,
+                        text: `✓ Task complete: ${task.text}`,
+                        createdAt: new Date(),
+                        auto: true
+                    });
+                }
+                
+                await loadUserData();
+                renderClaimTasks();
+                renderClaimDiary();
+                updateOverdueCounts();
+            } catch (error) {
+                console.error('Error toggling task:', error);
+            }
         }
 
         function renderClaimReminders() {
@@ -1734,17 +1875,53 @@
             }
 
             container.innerHTML = claimReminders.map(r => {
-                const overdue = isOverdue(r.dueDateTime);
+                const completed = r.completed === true;
+                const overdue = !completed && isOverdue(r.dueDateTime);
                 return `
-                    <div class="item-card ${overdue ? 'overdue' : ''}">
-                        <div class="item-title">${r.text}</div>
-                        <div class="item-meta ${overdue ? 'overdue' : ''}">${overdue ? '⚠️ OVERDUE: ' : ''}${new Date(r.dueDateTime).toLocaleString()}</div>
+                    <div class="item-card ${overdue ? 'overdue' : ''}" style="${completed ? 'opacity: 0.6; border-left-color: #27ae60;' : ''}">
+                        <div style="display: flex; align-items: start; gap: 8px;">
+                            <input type="checkbox" ${completed ? 'checked' : ''} onchange="toggleReminderComplete('${r.id}', this.checked)" style="margin-top: 3px; cursor: pointer;">
+                            <div style="flex: 1;">
+                                <div class="item-title" style="${completed ? 'text-decoration: line-through;' : ''}">${r.text}</div>
+                                <div class="item-meta ${overdue ? 'overdue' : ''}">${completed ? '✓ Done' : (overdue ? '⚠️ OVERDUE: ' : '')}${new Date(r.dueDateTime).toLocaleString()}</div>
+                            </div>
+                        </div>
                         <div class="item-actions">
                             <button class="item-btn" onclick="deleteReminder('${r.id}')">Delete</button>
                         </div>
                     </div>
                 `;
             }).join('');
+        }
+        
+        async function toggleReminderComplete(reminderId, isCompleted) {
+            if (!currentUser) return;
+            
+            const reminder = allReminders.find(r => r.id === reminderId);
+            if (!reminder) return;
+            
+            try {
+                await db.collection('users').doc(currentUser.uid).collection('reminders').doc(reminderId).update({
+                    completed: isCompleted,
+                    completedAt: isCompleted ? new Date() : null
+                });
+                
+                if (isCompleted && selectedClaimId) {
+                    await db.collection('users').doc(currentUser.uid).collection('diary').add({
+                        claimId: selectedClaimId,
+                        text: `✓ Reminder handled: ${reminder.text}`,
+                        createdAt: new Date(),
+                        auto: true
+                    });
+                }
+                
+                await loadUserData();
+                renderClaimReminders();
+                renderClaimDiary();
+                updateOverdueCounts();
+            } catch (error) {
+                console.error('Error toggling reminder:', error);
+            }
         }
 
         function renderClaimDiary() {
@@ -1756,15 +1933,21 @@
                 return;
             }
 
-            container.innerHTML = claimDiary.map(d => `
-                <div class="item-card">
-                    <div class="item-meta">${new Date(d.createdAt?.toDate?.() || d.createdAt).toLocaleString()}</div>
-                    <div style="font-size: 12px; margin-top: 8px; line-height: 1.5;">${d.text}</div>
-                    <div class="item-actions">
-                        <button class="item-btn" onclick="deleteDiary('${d.id}')">Delete</button>
+            container.innerHTML = claimDiary.map(d => {
+                const isAuto = d.auto === true;
+                return `
+                    <div class="item-card" style="${isAuto ? 'background: #e3f2fd; border-left-color: #3498db;' : ''}">
+                        <div class="item-meta">
+                            ${isAuto ? '<span style="background: #3498db; color: white; padding: 1px 6px; border-radius: 3px; font-size: 9px; margin-right: 6px;">AUTO</span>' : ''}
+                            ${new Date(d.createdAt?.toDate?.() || d.createdAt).toLocaleString()}
+                        </div>
+                        <div style="font-size: 12px; margin-top: 8px; line-height: 1.5;">${d.text}</div>
+                        <div class="item-actions">
+                            <button class="item-btn" onclick="deleteDiary('${d.id}')">Delete</button>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         async function deleteSchedule(id) {
@@ -1879,13 +2062,19 @@
 
             container.innerHTML = sorted.map(s => {
                 const claim = allClaims.find(c => c.id === s.claimId);
-                const overdue = isOverdue(s.date, s.time);
+                const completed = s.completed === true;
+                const overdue = !completed && isOverdue(s.date, s.time);
                 return `
-                    <div class="item-card ${overdue ? 'overdue' : ''}" id="schedule-${s.id}">
+                    <div class="item-card ${overdue ? 'overdue' : ''}" id="schedule-${s.id}" style="${completed ? 'opacity: 0.6; border-left-color: #27ae60;' : ''}">
                         <div style="font-size: 11px; color: #3498db; font-weight: 600; margin-bottom: 6px;">📋 ${claim ? claim.claimId : 'Unknown'}</div>
-                        <div class="item-title" id="schedule-title-${s.id}">${s.activity}</div>
-                        <div class="item-meta ${overdue ? 'overdue' : ''}" id="schedule-meta-${s.id}">${overdue ? '⚠️ OVERDUE: ' : ''}${new Date(s.date).toLocaleDateString()}${s.time ? ' at ' + s.time : ''}</div>
-                        ${claim ? `<div style="font-size: 11px; margin-top: 6px; color: #7f8c8d;">${claim.claimantName}</div>` : ''}
+                        <div style="display: flex; align-items: start; gap: 8px;">
+                            <input type="checkbox" ${completed ? 'checked' : ''} onchange="toggleScheduleCompleteGlobal('${s.id}', this.checked)" style="margin-top: 3px; cursor: pointer;">
+                            <div style="flex: 1;">
+                                <div class="item-title" id="schedule-title-${s.id}" style="${completed ? 'text-decoration: line-through;' : ''}">${s.activity}</div>
+                                <div class="item-meta ${overdue ? 'overdue' : ''}" id="schedule-meta-${s.id}">${completed ? '✓ Completed' : (overdue ? '⚠️ OVERDUE: ' : '')}${new Date(s.date).toLocaleDateString()}${s.time ? ' at ' + s.time : ''}</div>
+                                ${claim ? `<div style="font-size: 11px; margin-top: 6px; color: #7f8c8d;">${claim.claimantName}</div>` : ''}
+                            </div>
+                        </div>
                         <div class="item-actions">
                             <button class="item-btn" onclick="editScheduleGlobal('${s.id}')">Edit</button>
                             <button class="item-btn" onclick="deleteScheduleGlobal('${s.id}')" style="background: #fee; color: #c62828;">Delete</button>
@@ -1893,6 +2082,36 @@
                     </div>
                 `;
             }).join('');
+        }
+        
+        async function toggleScheduleCompleteGlobal(scheduleId, isCompleted) {
+            if (!currentUser) return;
+            
+            const schedule = allSchedules.find(s => s.id === scheduleId);
+            if (!schedule) return;
+            
+            try {
+                await db.collection('users').doc(currentUser.uid).collection('schedules').doc(scheduleId).update({
+                    completed: isCompleted,
+                    completedAt: isCompleted ? new Date() : null
+                });
+                
+                // Auto-create diary entry when marked complete
+                if (isCompleted) {
+                    await db.collection('users').doc(currentUser.uid).collection('diary').add({
+                        claimId: schedule.claimId,
+                        text: `✓ Completed: ${schedule.activity}`,
+                        createdAt: new Date(),
+                        auto: true
+                    });
+                }
+                
+                await loadUserData();
+                renderScheduleGlobal();
+                updateOverdueCounts();
+            } catch (error) {
+                console.error('Error toggling schedule:', error);
+            }
         }
         
         function editScheduleGlobal(scheduleId) {
@@ -2101,9 +2320,9 @@
         function updateOverdueCounts() {
             const now = new Date();
             
-            const overdueSchedules = allSchedules.filter(s => new Date(s.date + 'T' + (s.time || '00:00')) < now).length;
-            const overdueTasks = allTasks.filter(t => t.dueDate && new Date(t.dueDate) < now).length;
-            const overdueReminders = allReminders.filter(r => new Date(r.dueDateTime) < now).length;
+            const overdueSchedules = allSchedules.filter(s => !s.completed && new Date(s.date + 'T' + (s.time || '00:00')) < now).length;
+            const overdueTasks = allTasks.filter(t => !t.completed && t.dueDate && new Date(t.dueDate) < now).length;
+            const overdueReminders = allReminders.filter(r => !r.completed && new Date(r.dueDateTime) < now).length;
             
             updateBadge('scheduleOverdueCount', overdueSchedules);
             updateBadge('tasksOverdueCount', overdueTasks);

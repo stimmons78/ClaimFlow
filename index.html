@@ -1217,6 +1217,8 @@
                             <div style="display: flex; gap: 8px;">
                                 <button class="btn" id="viewCardBtn" onclick="setClaimsView('card')" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; border: none;">⊞ Cards</button>
                                 <button class="btn" id="viewTableBtn" onclick="setClaimsView('table')">☰ Table</button>
+                                <button class="btn" id="viewKanbanBtn" onclick="setClaimsView('kanban')">⊟ Kanban</button>
+                                <button class="btn" id="viewMapBtn" onclick="setClaimsView('map')">🗺️ Map</button>
                             </div>
                         </div>
                         
@@ -1266,6 +1268,12 @@
                         
                         <!-- Table View -->
                         <div id="claimsTable" style="display: none; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;"></div>
+                        
+                        <!-- Kanban View -->
+                        <div id="claimsKanban" style="display: none;"></div>
+                        
+                        <!-- Map View -->
+                        <div id="claimsMap" style="display: none;"></div>
                     </div>
 
                     <div id="calendar-view" class="view">
@@ -2009,33 +2017,55 @@
             `).join('');
         }
 
-        let claimsViewMode = 'card'; // 'card' or 'table'
+        let claimsViewMode = 'card'; // 'card', 'table', 'kanban', or 'map'
         
         function setClaimsView(mode) {
             claimsViewMode = mode;
             const cardBtn = document.getElementById('viewCardBtn');
             const tableBtn = document.getElementById('viewTableBtn');
+            const kanbanBtn = document.getElementById('viewKanbanBtn');
+            const mapBtn = document.getElementById('viewMapBtn');
             const cardView = document.getElementById('claimsList');
             const tableView = document.getElementById('claimsTable');
+            const kanbanView = document.getElementById('claimsKanban');
+            const mapView = document.getElementById('claimsMap');
             
-            if (mode === 'card') {
-                cardBtn.style.background = 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)';
-                cardBtn.style.color = 'white';
-                cardBtn.style.border = 'none';
-                tableBtn.style.background = '#fff';
-                tableBtn.style.color = '#475569';
-                tableBtn.style.border = '1px solid #e2e8f0';
-                cardView.style.display = 'grid';
-                tableView.style.display = 'none';
-            } else {
-                tableBtn.style.background = 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)';
-                tableBtn.style.color = 'white';
-                tableBtn.style.border = 'none';
-                cardBtn.style.background = '#fff';
-                cardBtn.style.color = '#475569';
-                cardBtn.style.border = '1px solid #e2e8f0';
-                cardView.style.display = 'none';
-                tableView.style.display = 'block';
+            // Reset all buttons
+            [cardBtn, tableBtn, kanbanBtn, mapBtn].forEach(btn => {
+                btn.style.background = '#fff';
+                btn.style.color = '#475569';
+                btn.style.border = '1px solid #e2e8f0';
+            });
+            
+            // Hide all views
+            cardView.style.display = 'none';
+            tableView.style.display = 'none';
+            kanbanView.style.display = 'none';
+            mapView.style.display = 'none';
+            
+            // Activate selected view
+            const activeBtn = {
+                'card': cardBtn,
+                'table': tableBtn,
+                'kanban': kanbanBtn,
+                'map': mapBtn
+            }[mode];
+            
+            if (activeBtn) {
+                activeBtn.style.background = 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)';
+                activeBtn.style.color = 'white';
+                activeBtn.style.border = 'none';
+            }
+            
+            const activeView = {
+                'card': cardView,
+                'table': tableView,
+                'kanban': kanbanView,
+                'map': mapView
+            }[mode];
+            
+            if (activeView) {
+                activeView.style.display = mode === 'card' ? 'grid' : 'block';
             }
             
             filterClaims();
@@ -2110,8 +2140,12 @@
             // Render
             if (claimsViewMode === 'card') {
                 renderClaimsCardView(filtered);
-            } else {
+            } else if (claimsViewMode === 'table') {
                 renderClaimsTableView(filtered);
+            } else if (claimsViewMode === 'kanban') {
+                renderClaimsKanbanView(filtered);
+            } else if (claimsViewMode === 'map') {
+                renderClaimsMapView(filtered);
             }
             
             updateFirmFilter();
@@ -2200,6 +2234,233 @@
                     </tbody>
                 </table>
             `;
+        }
+        
+        function renderClaimsKanbanView(claims) {
+            const container = document.getElementById('claimsKanban');
+            
+            const columns = {
+                'new': { title: 'New', color: '#3b82f6', bgColor: '#dbeafe', claims: [] },
+                'in-progress': { title: 'In Progress', color: '#f59e0b', bgColor: '#fef3c7', claims: [] },
+                'closed': { title: 'Closed', color: '#10b981', bgColor: '#d1fae5', claims: [] }
+            };
+            
+            claims.forEach(claim => {
+                if (columns[claim.status]) columns[claim.status].claims.push(claim);
+            });
+            
+            container.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; min-height: 600px;">
+                    ${Object.entries(columns).map(([statusKey, col]) => `
+                        <div class="kanban-column" data-status="${statusKey}" ondragover="event.preventDefault(); this.style.background='#f0f9ff'" ondragleave="this.style.background='#f8fafc'" ondrop="handleKanbanDrop(event, '${statusKey}')" style="background: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 12px; padding: 12px; transition: all 0.2s;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 8px 12px; background: ${col.bgColor}; border-radius: 8px;">
+                                <div style="width: 8px; height: 8px; background: ${col.color}; border-radius: 50%;"></div>
+                                <div style="font-weight: 700; color: ${col.color}; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">${col.title}</div>
+                                <div style="margin-left: auto; background: white; color: ${col.color}; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px;">${col.claims.length}</div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                ${col.claims.length === 0 ? '<div style="font-size: 12px; color: #94a3b8; text-align: center; padding: 24px; font-style: italic;">No claims</div>' : col.claims.map(c => `
+                                    <div draggable="true" ondragstart="handleKanbanDragStart(event, '${c.id}')" onclick="openClaimDetail('${c.id}')" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.boxShadow='0 8px 20px rgba(99, 102, 241, 0.12)'; this.style.borderColor='#6366f1'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.borderColor='#e2e8f0'; this.style.transform=''">
+                                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 6px;">
+                                            <div style="font-weight: 700; font-size: 13px; color: #0f172a;">${c.claimId}</div>
+                                            ${c.claimType === 'cat' ? '<span style="background: linear-gradient(135deg, #fbbf24, #f59e0b); color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 700;">CAT</span>' : ''}
+                                        </div>
+                                        <div style="font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">${c.claimantName}</div>
+                                        <div style="font-size: 11px; color: #64748b; margin-bottom: 4px;">📍 ${c.property}</div>
+                                        <div style="font-size: 11px; color: #64748b;">${c.typeOfLoss}</div>
+                                        <div style="font-size: 10px; color: #94a3b8; margin-top: 6px;">${c.firm}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div style="margin-top: 16px; padding: 12px; background: #f8fafc; border-radius: 8px; font-size: 12px; color: #64748b; text-align: center;">
+                    💡 Drag and drop cards between columns to change status
+                </div>
+            `;
+        }
+        
+        function handleKanbanDragStart(event, claimId) {
+            event.dataTransfer.setData('claimId', claimId);
+        }
+        
+        async function handleKanbanDrop(event, newStatus) {
+            event.preventDefault();
+            const claimId = event.dataTransfer.getData('claimId');
+            if (!claimId || !currentUser) return;
+            
+            // Reset column background
+            event.currentTarget.style.background = '#f8fafc';
+            
+            const claim = allClaims.find(c => c.id === claimId);
+            if (!claim || claim.status === newStatus) return;
+            
+            try {
+                await db.collection('users').doc(currentUser.uid).collection('claims').doc(claimId).update({
+                    status: newStatus
+                });
+                
+                // Auto-diary entry
+                const statusLabels = { 'new': 'New', 'in-progress': 'In Progress', 'closed': 'Closed' };
+                await db.collection('users').doc(currentUser.uid).collection('diary').add({
+                    claimId: claimId,
+                    text: `Status changed: ${statusLabels[claim.status] || claim.status} → ${statusLabels[newStatus] || newStatus}`,
+                    createdAt: new Date(),
+                    auto: true
+                });
+                
+                await loadUserData();
+                filterClaims();
+            } catch (error) {
+                console.error('Error updating status:', error);
+            }
+        }
+        
+        function renderClaimsMapView(claims) {
+            const container = document.getElementById('claimsMap');
+            
+            // Check if Google Maps API key is set
+            const apiKey = localStorage.getItem('googleMapsApiKey');
+            
+            if (!apiKey) {
+                container.innerHTML = `
+                    <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 40px; text-align: center;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">🗺️</div>
+                        <h3 style="font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">Map View Setup Required</h3>
+                        <p style="color: #64748b; font-size: 14px; margin-bottom: 24px; max-width: 500px; margin-left: auto; margin-right: auto; line-height: 1.6;">
+                            To use the map view, you'll need a free Google Maps API key. This will let you see all your claims plotted on a map - perfect for CAT events and route planning.
+                        </p>
+                        <div style="background: #f8fafc; border-radius: 12px; padding: 20px; max-width: 600px; margin: 0 auto 24px; text-align: left;">
+                            <div style="font-weight: 700; color: #0f172a; margin-bottom: 12px; font-size: 14px;">How to get your free API key:</div>
+                            <ol style="color: #475569; font-size: 13px; line-height: 1.8; padding-left: 20px;">
+                                <li>Go to <a href="https://console.cloud.google.com" target="_blank" style="color: #6366f1; font-weight: 600;">Google Cloud Console</a></li>
+                                <li>Create a new project (or use existing)</li>
+                                <li>Enable "Maps JavaScript API" and "Geocoding API"</li>
+                                <li>Create credentials → API Key</li>
+                                <li>Copy the key and paste it below</li>
+                            </ol>
+                            <div style="font-size: 11px; color: #94a3b8; margin-top: 12px;">Free tier: 28,000 map loads/month - plenty for daily use</div>
+                        </div>
+                        <div style="max-width: 400px; margin: 0 auto;">
+                            <input type="text" id="googleMapsApiKeyInput" placeholder="Paste your API key here..." style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; margin-bottom: 12px;">
+                            <button class="btn btn-primary" onclick="saveGoogleMapsApiKey()" style="width: 100%;">Save & Load Map</button>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Load map with the API key
+            container.innerHTML = `
+                <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
+                    <div id="googleMap" style="width: 100%; height: 600px;"></div>
+                    <div style="padding: 12px 16px; background: #f8fafc; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="font-size: 12px; color: #64748b;">📍 ${claims.length} claims plotted</div>
+                        <button class="btn" onclick="resetGoogleMapsApiKey()" style="font-size: 11px;">Change API Key</button>
+                    </div>
+                </div>
+            `;
+            
+            // Load Google Maps script if not already loaded
+            if (!window.google || !window.google.maps) {
+                const script = document.createElement('script');
+                script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMap`;
+                script.async = true;
+                script.defer = true;
+                window.initGoogleMap = () => loadMapWithClaims(claims);
+                document.head.appendChild(script);
+            } else {
+                loadMapWithClaims(claims);
+            }
+        }
+        
+        function saveGoogleMapsApiKey() {
+            const key = document.getElementById('googleMapsApiKeyInput').value.trim();
+            if (!key) return;
+            localStorage.setItem('googleMapsApiKey', key);
+            filterClaims();
+        }
+        
+        function resetGoogleMapsApiKey() {
+            if (confirm('Remove Google Maps API key?')) {
+                localStorage.removeItem('googleMapsApiKey');
+                filterClaims();
+            }
+        }
+        
+        function loadMapWithClaims(claims) {
+            const mapElement = document.getElementById('googleMap');
+            if (!mapElement || !window.google) return;
+            
+            const map = new google.maps.Map(mapElement, {
+                zoom: 8,
+                center: { lat: 38.5816, lng: -121.4944 }, // Default: Sacramento, CA
+                styles: [
+                    { featureType: 'poi', stylers: [{ visibility: 'off' }] }
+                ]
+            });
+            
+            const geocoder = new google.maps.Geocoder();
+            const bounds = new google.maps.LatLngBounds();
+            let geocodedCount = 0;
+            
+            claims.forEach((claim, index) => {
+                if (!claim.property) return;
+                
+                // Throttle geocoding requests to avoid rate limits
+                setTimeout(() => {
+                    geocoder.geocode({ address: claim.property }, (results, status) => {
+                        if (status === 'OK' && results[0]) {
+                            const position = results[0].geometry.location;
+                            
+                            // Different colors by status
+                            const colors = {
+                                'new': '#3b82f6',
+                                'in-progress': '#f59e0b',
+                                'closed': '#10b981'
+                            };
+                            
+                            const marker = new google.maps.Marker({
+                                map: map,
+                                position: position,
+                                title: `${claim.claimId} - ${claim.claimantName}`,
+                                icon: {
+                                    path: google.maps.SymbolPath.CIRCLE,
+                                    scale: 12,
+                                    fillColor: colors[claim.status] || '#6366f1',
+                                    fillOpacity: 0.9,
+                                    strokeColor: 'white',
+                                    strokeWeight: 2
+                                }
+                            });
+                            
+                            const infoWindow = new google.maps.InfoWindow({
+                                content: `
+                                    <div style="padding: 8px; min-width: 200px;">
+                                        <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">${claim.claimId}</div>
+                                        <div style="font-size: 12px; color: #555; margin-bottom: 2px;">${claim.claimantName}</div>
+                                        <div style="font-size: 11px; color: #777; margin-bottom: 2px;">${claim.property}</div>
+                                        <div style="font-size: 11px; color: #777; margin-bottom: 8px;">${claim.typeOfLoss}</div>
+                                        <button onclick="openClaimDetail('${claim.id}')" style="background: #6366f1; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: 600;">View Claim →</button>
+                                    </div>
+                                `
+                            });
+                            
+                            marker.addListener('click', () => {
+                                infoWindow.open(map, marker);
+                            });
+                            
+                            bounds.extend(position);
+                            geocodedCount++;
+                            
+                            if (geocodedCount === claims.length) {
+                                map.fitBounds(bounds);
+                            }
+                        }
+                    });
+                }, index * 100); // 100ms between requests
+            });
         }
         
         function renderClaimsList() {
@@ -2729,7 +2990,7 @@
                 const date = new Date(year, month, i);
                 const dateStr = date.toISOString().split('T')[0];
                 
-                // Find all events for this day
+                // Find all events for this day (excluding claims/date of loss)
                 const daySchedules = allSchedules.filter(s => s.date === dateStr && !s.completed);
                 const dayTasks = allTasks.filter(t => t.dueDate === dateStr && !t.completed);
                 const dayReminders = allReminders.filter(r => {
@@ -2737,9 +2998,8 @@
                     const reminderDate = new Date(r.dueDateTime).toISOString().split('T')[0];
                     return reminderDate === dateStr && !r.completed;
                 });
-                const dayClaims = allClaims.filter(c => c.dateOfLoss === dateStr);
                 
-                const totalEvents = daySchedules.length + dayTasks.length + dayReminders.length + dayClaims.length;
+                const totalEvents = daySchedules.length + dayTasks.length + dayReminders.length;
                 const isToday = date.toDateString() === today.toDateString();
                 
                 let className = 'calendar-day-cell';
@@ -2751,7 +3011,6 @@
                 if (daySchedules.length > 0) eventBadges += `<div class="event-badge schedule">📅 ${daySchedules.length}</div>`;
                 if (dayTasks.length > 0) eventBadges += `<div class="event-badge task">✓ ${dayTasks.length}</div>`;
                 if (dayReminders.length > 0) eventBadges += `<div class="event-badge reminder">🔔 ${dayReminders.length}</div>`;
-                if (dayClaims.length > 0) eventBadges += `<div class="event-badge claim">📋 ${dayClaims.length}</div>`;
                 
                 html += `<div class="${className}" onclick="showDayDetails('${dateStr}')" data-date="${dateStr}">
                     <div class="day-number">${i}</div>
@@ -2773,7 +3032,6 @@
                     <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 12px; height: 12px; background: #3498db; border-radius: 3px;"></div>Schedule</div>
                     <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 12px; height: 12px; background: #f39c12; border-radius: 3px;"></div>Task</div>
                     <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 12px; height: 12px; background: #e74c3c; border-radius: 3px;"></div>Reminder</div>
-                    <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 12px; height: 12px; background: #27ae60; border-radius: 3px;"></div>Date of Loss</div>
                 </div>
                 <div id="dayDetails" style="margin-top: 16px;"></div>
             `;
@@ -2791,9 +3049,8 @@
                 const reminderDate = new Date(r.dueDateTime).toISOString().split('T')[0];
                 return reminderDate === dateStr;
             });
-            const dayClaims = allClaims.filter(c => c.dateOfLoss === dateStr);
             
-            const totalEvents = daySchedules.length + dayTasks.length + dayReminders.length + dayClaims.length;
+            const totalEvents = daySchedules.length + dayTasks.length + dayReminders.length;
             
             let html = `
                 <div style="background: #fff; border: 1px solid #ecf0f1; border-radius: 8px; padding: 16px;">
@@ -2806,17 +3063,6 @@
             if (totalEvents === 0) {
                 html += '<div class="empty-section">No events on this day</div>';
             } else {
-                if (dayClaims.length > 0) {
-                    html += '<div style="margin-bottom: 12px;"><div style="font-size: 11px; font-weight: 700; color: #27ae60; text-transform: uppercase; margin-bottom: 8px;">📋 Date of Loss</div>';
-                    dayClaims.forEach(c => {
-                        html += `<div class="item-card" style="border-left-color: #27ae60; cursor: pointer;" onclick="openClaimDetail('${c.id}')">
-                            <div class="item-title">${c.claimId} - ${c.claimantName}</div>
-                            <div class="item-meta">${c.property} • ${c.typeOfLoss}</div>
-                        </div>`;
-                    });
-                    html += '</div>';
-                }
-                
                 if (daySchedules.length > 0) {
                     html += '<div style="margin-bottom: 12px;"><div style="font-size: 11px; font-weight: 700; color: #3498db; text-transform: uppercase; margin-bottom: 8px;">📅 Scheduled</div>';
                     daySchedules.forEach(s => {

@@ -1212,8 +1212,60 @@
                     </div>
 
                     <div id="claims-view" class="view">
-                        <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 16px; color: #2c3e50;">All Claims</h3>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                            <h3 style="font-size: 16px; font-weight: 700; color: #0f172a;">All Claims <span id="claimsCount" style="font-size: 13px; color: #94a3b8; font-weight: 500;">(0)</span></h3>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn" id="viewCardBtn" onclick="setClaimsView('card')" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; border: none;">⊞ Cards</button>
+                                <button class="btn" id="viewTableBtn" onclick="setClaimsView('table')">☰ Table</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Search and Filters -->
+                        <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                                <input type="text" id="searchInput" placeholder="🔍 Search claim ID, name, address, firm..." oninput="filterClaims()" style="padding: 10px 14px;">
+                                <select id="filterStatus" onchange="filterClaims()" style="padding: 10px 14px;">
+                                    <option value="">All Statuses</option>
+                                    <option value="new">New</option>
+                                    <option value="in-progress">In Progress</option>
+                                    <option value="closed">Closed</option>
+                                </select>
+                                <select id="filterType" onchange="filterClaims()" style="padding: 10px 14px;">
+                                    <option value="">All Types</option>
+                                    <option value="daily">Daily Claims</option>
+                                    <option value="cat">CAT Claims</option>
+                                </select>
+                                <select id="filterFirm" onchange="filterClaims()" style="padding: 10px 14px;">
+                                    <option value="">All Firms</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; gap: 12px; align-items: center; font-size: 12px; color: #64748b;">
+                                <span style="font-weight: 600;">Sort by:</span>
+                                <select id="sortBy" onchange="filterClaims()" style="padding: 6px 12px; flex: 0 0 auto;">
+                                    <option value="createdAt">Date Created</option>
+                                    <option value="claimId">Claim ID</option>
+                                    <option value="claimantName">Claimant Name</option>
+                                    <option value="dateOfLoss">Date of Loss</option>
+                                    <option value="dateReported">Date Reported</option>
+                                    <option value="property">Property</option>
+                                    <option value="typeOfLoss">Type of Loss</option>
+                                    <option value="firm">Firm</option>
+                                    <option value="status">Status</option>
+                                    <option value="claimType">Claim Type</option>
+                                </select>
+                                <select id="sortOrder" onchange="filterClaims()" style="padding: 6px 12px; flex: 0 0 auto;">
+                                    <option value="desc">Newest First ↓</option>
+                                    <option value="asc">Oldest First ↑</option>
+                                </select>
+                                <button class="btn" onclick="clearFilters()" style="padding: 6px 12px; margin-left: auto;">Clear Filters</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Card View -->
                         <div class="claims-grid" id="claimsList"></div>
+                        
+                        <!-- Table View -->
+                        <div id="claimsTable" style="display: none; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;"></div>
                     </div>
 
                     <div id="calendar-view" class="view">
@@ -1957,21 +2009,202 @@
             `).join('');
         }
 
-        function renderClaimsList() {
-            if (allClaims.length === 0) {
-                document.getElementById('claimsList').innerHTML = '<div class="empty-section">No claims yet.</div>';
+        let claimsViewMode = 'card'; // 'card' or 'table'
+        
+        function setClaimsView(mode) {
+            claimsViewMode = mode;
+            const cardBtn = document.getElementById('viewCardBtn');
+            const tableBtn = document.getElementById('viewTableBtn');
+            const cardView = document.getElementById('claimsList');
+            const tableView = document.getElementById('claimsTable');
+            
+            if (mode === 'card') {
+                cardBtn.style.background = 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)';
+                cardBtn.style.color = 'white';
+                cardBtn.style.border = 'none';
+                tableBtn.style.background = '#fff';
+                tableBtn.style.color = '#475569';
+                tableBtn.style.border = '1px solid #e2e8f0';
+                cardView.style.display = 'grid';
+                tableView.style.display = 'none';
+            } else {
+                tableBtn.style.background = 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)';
+                tableBtn.style.color = 'white';
+                tableBtn.style.border = 'none';
+                cardBtn.style.background = '#fff';
+                cardBtn.style.color = '#475569';
+                cardBtn.style.border = '1px solid #e2e8f0';
+                cardView.style.display = 'none';
+                tableView.style.display = 'block';
+            }
+            
+            filterClaims();
+        }
+        
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterType').value = '';
+            document.getElementById('filterFirm').value = '';
+            document.getElementById('sortBy').value = 'createdAt';
+            document.getElementById('sortOrder').value = 'desc';
+            filterClaims();
+        }
+        
+        function filterClaims() {
+            const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
+            const filterStatus = document.getElementById('filterStatus')?.value || '';
+            const filterType = document.getElementById('filterType')?.value || '';
+            const filterFirm = document.getElementById('filterFirm')?.value || '';
+            const sortBy = document.getElementById('sortBy')?.value || 'createdAt';
+            const sortOrder = document.getElementById('sortOrder')?.value || 'desc';
+            
+            let filtered = [...allClaims];
+            
+            // Search
+            if (search) {
+                filtered = filtered.filter(c => 
+                    (c.claimId || '').toLowerCase().includes(search) ||
+                    (c.claimantName || '').toLowerCase().includes(search) ||
+                    (c.property || '').toLowerCase().includes(search) ||
+                    (c.firm || '').toLowerCase().includes(search) ||
+                    (c.typeOfLoss || '').toLowerCase().includes(search) ||
+                    (c.xaId || '').toLowerCase().includes(search)
+                );
+            }
+            
+            // Filter by status
+            if (filterStatus) filtered = filtered.filter(c => c.status === filterStatus);
+            
+            // Filter by type
+            if (filterType) filtered = filtered.filter(c => c.claimType === filterType);
+            
+            // Filter by firm
+            if (filterFirm) filtered = filtered.filter(c => c.firm === filterFirm);
+            
+            // Sort
+            filtered.sort((a, b) => {
+                let aVal = a[sortBy];
+                let bVal = b[sortBy];
+                
+                // Handle dates
+                if (sortBy === 'createdAt' || sortBy === 'dateOfLoss' || sortBy === 'dateReported') {
+                    aVal = new Date(aVal?.toDate?.() || aVal || 0).getTime();
+                    bVal = new Date(bVal?.toDate?.() || bVal || 0).getTime();
+                } else if (typeof aVal === 'string') {
+                    aVal = aVal.toLowerCase();
+                    bVal = (bVal || '').toLowerCase();
+                }
+                
+                if (sortOrder === 'asc') {
+                    return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+                } else {
+                    return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+                }
+            });
+            
+            // Update count
+            const countEl = document.getElementById('claimsCount');
+            if (countEl) countEl.textContent = `(${filtered.length}${filtered.length !== allClaims.length ? ' of ' + allClaims.length : ''})`;
+            
+            // Render
+            if (claimsViewMode === 'card') {
+                renderClaimsCardView(filtered);
+            } else {
+                renderClaimsTableView(filtered);
+            }
+            
+            updateFirmFilter();
+        }
+        
+        function updateFirmFilter() {
+            const firmFilter = document.getElementById('filterFirm');
+            if (!firmFilter) return;
+            
+            const currentValue = firmFilter.value;
+            const firms = [...new Set(allClaims.map(c => c.firm).filter(f => f))].sort();
+            
+            firmFilter.innerHTML = '<option value="">All Firms</option>' + 
+                firms.map(f => `<option value="${f}" ${f === currentValue ? 'selected' : ''}>${f}</option>`).join('');
+        }
+        
+        function renderClaimsCardView(claims) {
+            const container = document.getElementById('claimsList');
+            
+            if (claims.length === 0) {
+                container.innerHTML = '<div class="empty-section">No claims match your filters.</div>';
                 return;
             }
-
-            document.getElementById('claimsList').innerHTML = allClaims.map(claim => `
+            
+            container.innerHTML = claims.map(claim => `
                 <div class="claim-card" ondblclick="openClaimDetail('${claim.id}')">
-                    <div class="claim-id">${claim.claimId}</div>
-                    <div class="claim-info"><strong>${claim.claimantName}</strong></div>
-                    <div class="claim-info">${claim.property}</div>
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div class="claim-id">${claim.claimId}</div>
+                        ${claim.claimType === 'cat' ? '<span style="background: linear-gradient(135deg, #fbbf24, #f59e0b); color: white; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: 700;">CAT</span>' : ''}
+                    </div>
+                    <div class="claim-info" style="margin-top: 4px;"><strong>${claim.claimantName}</strong></div>
+                    <div class="claim-info">📍 ${claim.property}</div>
                     <div class="claim-info">${claim.typeOfLoss}</div>
-                    <div style="margin-top: 10px;"><span class="claim-status status-${claim.status}">${claim.status.replace('-', ' ').toUpperCase()}</span></div>
+                    <div class="claim-info" style="font-size: 11px; color: #94a3b8;">${claim.firm}</div>
+                    <div style="margin-top: 12px;"><span class="claim-status status-${claim.status}">${claim.status.replace('-', ' ')}</span></div>
                 </div>
             `).join('');
+        }
+        
+        function renderClaimsTableView(claims) {
+            const container = document.getElementById('claimsTable');
+            
+            if (claims.length === 0) {
+                container.innerHTML = '<div class="empty-section">No claims match your filters.</div>';
+                return;
+            }
+            
+            // Pre-calculate inspection dates for sorting
+            const claimsWithInspection = claims.map(claim => {
+                const claimSchedules = allSchedules.filter(s => s.claimId === claim.id);
+                const nextInspection = claimSchedules
+                    .filter(s => !s.completed && (s.activity.toLowerCase().includes('inspection') || s.activity.toLowerCase().includes('appointment')))
+                    .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+                return { ...claim, _nextInspection: nextInspection };
+            });
+            
+            container.innerHTML = `
+                <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                    <thead style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                        <tr>
+                            <th style="padding: 12px; text-align: left; font-weight: 700; color: #64748b; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Claim ID</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 700; color: #64748b; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Claimant</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 700; color: #64748b; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Property</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 700; color: #64748b; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Type of Loss</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 700; color: #64748b; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Firm</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 700; color: #64748b; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">DOL</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 700; color: #64748b; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Next Inspection</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 700; color: #64748b; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Type</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 700; color: #64748b; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${claimsWithInspection.map(claim => `
+                            <tr onclick="openClaimDetail('${claim.id}')" style="border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                                <td style="padding: 12px; font-weight: 600; color: #0f172a;">${claim.claimId}</td>
+                                <td style="padding: 12px; color: #334155;">${claim.claimantName}</td>
+                                <td style="padding: 12px; color: #64748b;">${claim.property}</td>
+                                <td style="padding: 12px; color: #64748b;">${claim.typeOfLoss}</td>
+                                <td style="padding: 12px; color: #64748b; font-size: 11px;">${claim.firm}</td>
+                                <td style="padding: 12px; color: #64748b;">${claim.dateOfLoss ? new Date(claim.dateOfLoss).toLocaleDateString() : '-'}</td>
+                                <td style="padding: 12px; color: #64748b;">${claim._nextInspection ? new Date(claim._nextInspection.date).toLocaleDateString() : '-'}</td>
+                                <td style="padding: 12px;">${claim.claimType === 'cat' ? '<span style="background: linear-gradient(135deg, #fbbf24, #f59e0b); color: white; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: 700;">CAT</span>' : '<span style="color: #94a3b8; font-size: 11px;">Daily</span>'}</td>
+                                <td style="padding: 12px;"><span class="claim-status status-${claim.status}">${claim.status.replace('-', ' ')}</span></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+        
+        function renderClaimsList() {
+            updateFirmFilter();
+            filterClaims();
         }
 
         async function saveClaim(e) {

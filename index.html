@@ -7,6 +7,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -712,7 +713,10 @@
         <div class="main">
             <div class="header">
                 <h1 id="pageTitle">Dashboard</h1>
-                <button class="btn btn-primary" id="newClaimBtn">+ New Claim</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn" id="importBtn">📥 Import from XA</button>
+                    <button class="btn btn-primary" id="newClaimBtn">+ New Claim</button>
+                </div>
             </div>
 
             <div class="content-wrapper">
@@ -879,6 +883,63 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div class="modal" id="importModal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2>📥 Import Claims from XA</h2>
+                <button class="close-btn" onclick="closeModal('importModal')">&times;</button>
+            </div>
+            
+            <div id="importStep1">
+                <p style="color: #7f8c8d; font-size: 13px; margin-bottom: 20px;">
+                    Export claims from XactAnalysis as CSV or XLSX, then drag and drop the file here.
+                </p>
+                
+                <div id="dropZone" style="border: 2px dashed #3498db; border-radius: 8px; padding: 40px; text-align: center; cursor: pointer; background: #f8f9fa; transition: all 0.2s;">
+                    <div style="font-size: 48px; margin-bottom: 12px;">📊</div>
+                    <div style="font-size: 14px; font-weight: 600; color: #2c3e50; margin-bottom: 8px;">Drop your file here</div>
+                    <div style="font-size: 12px; color: #7f8c8d;">or click to browse</div>
+                    <div style="font-size: 11px; color: #95a5a6; margin-top: 8px;">Supports .xlsx and .csv files</div>
+                    <input type="file" id="importFileInput" accept=".xlsx,.csv,.xls" style="display: none;">
+                </div>
+                
+                <div id="importError" style="display: none; background: #ffebee; color: #c62828; padding: 12px; border-radius: 6px; font-size: 12px; margin-top: 16px;"></div>
+            </div>
+            
+            <div id="importStep2" style="display: none;">
+                <div style="background: #e8f5e9; padding: 12px; border-radius: 6px; margin-bottom: 16px;">
+                    <div style="font-size: 13px; font-weight: 600; color: #27ae60; margin-bottom: 4px;">✓ File loaded successfully</div>
+                    <div style="font-size: 11px; color: #7f8c8d;" id="importFileInfo">-</div>
+                </div>
+                
+                <div style="font-size: 13px; font-weight: 600; margin-bottom: 12px; color: #2c3e50;">Preview - Claims to Import:</div>
+                
+                <div id="importPreview" style="max-height: 300px; overflow-y: auto; border: 1px solid #ecf0f1; border-radius: 6px; padding: 12px; background: #fafafa;"></div>
+                
+                <div style="font-size: 12px; color: #7f8c8d; margin-top: 12px;" id="importSummary">-</div>
+                
+                <div class="button-group">
+                    <button type="button" onclick="resetImport()">Cancel</button>
+                    <button type="button" class="save-btn" onclick="confirmImport()">Import All Claims</button>
+                </div>
+            </div>
+            
+            <div id="importStep3" style="display: none; text-align: center; padding: 20px;">
+                <div style="font-size: 48px; margin-bottom: 12px;">⏳</div>
+                <div style="font-size: 14px; font-weight: 600; color: #2c3e50;">Importing claims...</div>
+                <div style="font-size: 12px; color: #7f8c8d; margin-top: 8px;" id="importProgress">-</div>
+            </div>
+            
+            <div id="importStep4" style="display: none; text-align: center; padding: 20px;">
+                <div style="font-size: 48px; margin-bottom: 12px;">✅</div>
+                <div style="font-size: 16px; font-weight: 700; color: #27ae60;">Import Complete!</div>
+                <div style="font-size: 13px; color: #2c3e50; margin-top: 12px;" id="importResult">-</div>
+                <button class="save-btn" style="margin-top: 20px; padding: 12px 24px;" onclick="closeImportSuccess()">Done</button>
             </div>
         </div>
     </div>
@@ -1111,6 +1172,280 @@
                 document.getElementById('dateOfLoss').valueAsDate = new Date();
                 openModal('claimModal');
             });
+            
+            document.getElementById('importBtn').addEventListener('click', () => {
+                resetImport();
+                openModal('importModal');
+            });
+            
+            setupImportListeners();
+        }
+        
+        // Import Functionality
+        let parsedClaims = [];
+        
+        function setupImportListeners() {
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('importFileInput');
+            
+            dropZone.addEventListener('click', () => fileInput.click());
+            
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.style.background = '#e3f2fd';
+                dropZone.style.borderColor = '#2980b9';
+            });
+            
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.style.background = '#f8f9fa';
+                dropZone.style.borderColor = '#3498db';
+            });
+            
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.style.background = '#f8f9fa';
+                dropZone.style.borderColor = '#3498db';
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleImportFile(files[0]);
+                }
+            });
+            
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleImportFile(e.target.files[0]);
+                }
+            });
+        }
+        
+        function handleImportFile(file) {
+            const errorDiv = document.getElementById('importError');
+            errorDiv.style.display = 'none';
+            
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                try {
+                    const data = e.target.result;
+                    const workbook = XLSX.read(data, { type: 'binary', cellDates: true });
+                    const sheetName = workbook.SheetNames[0];
+                    const sheet = workbook.Sheets[sheetName];
+                    const rows = XLSX.utils.sheet_to_json(sheet, { defval: null });
+                    
+                    if (rows.length === 0) {
+                        showImportError('No data found in file. Make sure the file has claim data.');
+                        return;
+                    }
+                    
+                    // Parse claims from XA format
+                    parsedClaims = rows.map(row => parseXAClaim(row)).filter(c => c !== null);
+                    
+                    if (parsedClaims.length === 0) {
+                        showImportError('No valid claims found. Make sure this is an XA export file.');
+                        return;
+                    }
+                    
+                    showImportPreview(file.name, parsedClaims);
+                } catch (error) {
+                    console.error('Import error:', error);
+                    showImportError('Could not read file. Make sure it\'s a valid XLSX or CSV file.');
+                }
+            };
+            
+            reader.onerror = () => {
+                showImportError('Error reading file. Please try again.');
+            };
+            
+            reader.readAsBinaryString(file);
+        }
+        
+        function parseXAClaim(row) {
+            // Map XA columns to ClaimFlow fields
+            const claimNumber = row['Claim #'] || row['Claim Number'] || row['ClaimNumber'];
+            if (!claimNumber) return null;
+            
+            const formatDate = (date) => {
+                if (!date) return null;
+                if (date instanceof Date) {
+                    return date.toISOString().split('T')[0];
+                }
+                try {
+                    return new Date(date).toISOString().split('T')[0];
+                } catch {
+                    return null;
+                }
+            };
+            
+            // Determine claim type based on CAT Code
+            const catCode = row['CAT Code'];
+            const claimType = (catCode && catCode !== '' && catCode !== null) ? 'cat' : 'daily';
+            
+            // Determine status from XA status
+            const xaStatus = (row['XactAnalysis Status'] || '').toLowerCase();
+            let status = 'new';
+            if (xaStatus.includes('closed') || xaStatus.includes('completed') || row['File Closed Date']) {
+                status = 'closed';
+            } else if (xaStatus.includes('delivered') || xaStatus.includes('progress') || row['Date Inspected']) {
+                status = 'in-progress';
+            }
+            
+            return {
+                claimId: String(claimNumber),
+                claimantName: row['Policyholder'] || 'Unknown',
+                property: row['City'] || 'Unknown',
+                typeOfLoss: 'Other', // XA export doesn't include type of loss directly
+                dateOfLoss: formatDate(row['Date of Loss']) || formatDate(new Date()),
+                dateReported: formatDate(row['Date Received']) || formatDate(new Date()),
+                claimType: claimType,
+                status: status,
+                firm: row['Data Set'] || 'Unknown',
+                contactPhone: null,
+                xaId: null,
+                description: `Imported from XA. CAT Code: ${catCode || 'N/A'}. Status: ${row['XactAnalysis Status'] || 'N/A'}.`,
+                // Track XA dates for potential schedule creation
+                _xaData: {
+                    plannedInspection: formatDate(row['Planned Inspection Date']),
+                    appointmentDate: formatDate(row['Appointment Date']),
+                    dateInspected: formatDate(row['Date Inspected']),
+                    daysPending: row['Days Pending'],
+                    total: row['Total']
+                }
+            };
+        }
+        
+        function showImportError(message) {
+            const errorDiv = document.getElementById('importError');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+        
+        function showImportPreview(fileName, claims) {
+            document.getElementById('importStep1').style.display = 'none';
+            document.getElementById('importStep2').style.display = 'block';
+            
+            document.getElementById('importFileInfo').textContent = `${fileName} - ${claims.length} claims found`;
+            
+            // Check for duplicates
+            const existingClaimIds = allClaims.map(c => c.claimId);
+            const duplicates = claims.filter(c => existingClaimIds.includes(c.claimId));
+            const newClaims = claims.filter(c => !existingClaimIds.includes(c.claimId));
+            
+            const previewHTML = claims.slice(0, 10).map(c => {
+                const isDupe = existingClaimIds.includes(c.claimId);
+                return `
+                    <div style="padding: 8px; border-bottom: 1px solid #ecf0f1; ${isDupe ? 'opacity: 0.5;' : ''}">
+                        <div style="font-size: 12px; font-weight: 600; color: #2c3e50;">
+                            ${c.claimId} - ${c.claimantName}
+                            ${isDupe ? '<span style="color: #e74c3c; font-size: 10px; margin-left: 8px;">⚠️ DUPLICATE</span>' : ''}
+                            ${c.claimType === 'cat' ? '<span style="background: #fff3e0; color: #f57c00; padding: 1px 6px; border-radius: 3px; font-size: 9px; margin-left: 8px;">CAT</span>' : ''}
+                        </div>
+                        <div style="font-size: 11px; color: #7f8c8d;">${c.property} • ${c.firm}</div>
+                        <div style="font-size: 10px; color: #95a5a6;">DOL: ${c.dateOfLoss} • Status: ${c.status}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('importPreview').innerHTML = previewHTML + 
+                (claims.length > 10 ? `<div style="padding: 8px; text-align: center; color: #7f8c8d; font-size: 11px;">... and ${claims.length - 10} more</div>` : '');
+            
+            document.getElementById('importSummary').innerHTML = `
+                <strong>${newClaims.length}</strong> new claims will be imported
+                ${duplicates.length > 0 ? `<br><strong style="color: #e74c3c;">${duplicates.length}</strong> duplicates will be skipped` : ''}
+            `;
+        }
+        
+        async function confirmImport() {
+            document.getElementById('importStep2').style.display = 'none';
+            document.getElementById('importStep3').style.display = 'block';
+            
+            const existingClaimIds = allClaims.map(c => c.claimId);
+            const newClaims = parsedClaims.filter(c => !existingClaimIds.includes(c.claimId));
+            
+            let imported = 0;
+            let errors = 0;
+            
+            for (let i = 0; i < newClaims.length; i++) {
+                const claim = newClaims[i];
+                document.getElementById('importProgress').textContent = `Importing ${i + 1} of ${newClaims.length}...`;
+                
+                try {
+                    const xaData = claim._xaData;
+                    delete claim._xaData;
+                    
+                    claim.createdAt = new Date();
+                    const docRef = await db.collection('users').doc(currentUser.uid).collection('claims').add(claim);
+                    
+                    // Create schedule items from XA dates
+                    if (xaData) {
+                        const schedulePromises = [];
+                        
+                        if (xaData.appointmentDate) {
+                            schedulePromises.push(db.collection('users').doc(currentUser.uid).collection('schedules').add({
+                                claimId: docRef.id,
+                                activity: 'Appointment',
+                                date: xaData.appointmentDate,
+                                time: '',
+                                createdAt: new Date()
+                            }));
+                        }
+                        
+                        if (xaData.dateInspected) {
+                            schedulePromises.push(db.collection('users').doc(currentUser.uid).collection('schedules').add({
+                                claimId: docRef.id,
+                                activity: 'Inspection Completed',
+                                date: xaData.dateInspected,
+                                time: '',
+                                createdAt: new Date()
+                            }));
+                        }
+                        
+                        if (xaData.plannedInspection) {
+                            schedulePromises.push(db.collection('users').doc(currentUser.uid).collection('schedules').add({
+                                claimId: docRef.id,
+                                activity: 'Planned Inspection',
+                                date: xaData.plannedInspection,
+                                time: '',
+                                createdAt: new Date()
+                            }));
+                        }
+                        
+                        await Promise.all(schedulePromises);
+                    }
+                    
+                    imported++;
+                } catch (error) {
+                    console.error('Error importing claim:', error);
+                    errors++;
+                }
+            }
+            
+            await loadUserData();
+            
+            document.getElementById('importStep3').style.display = 'none';
+            document.getElementById('importStep4').style.display = 'block';
+            document.getElementById('importResult').innerHTML = `
+                <strong>${imported}</strong> claims imported successfully
+                ${errors > 0 ? `<br><strong style="color: #e74c3c;">${errors}</strong> errors` : ''}
+                ${parsedClaims.length - newClaims.length > 0 ? `<br><strong>${parsedClaims.length - newClaims.length}</strong> duplicates skipped` : ''}
+            `;
+        }
+        
+        function resetImport() {
+            document.getElementById('importStep1').style.display = 'block';
+            document.getElementById('importStep2').style.display = 'none';
+            document.getElementById('importStep3').style.display = 'none';
+            document.getElementById('importStep4').style.display = 'none';
+            document.getElementById('importFileInput').value = '';
+            document.getElementById('importError').style.display = 'none';
+            parsedClaims = [];
+        }
+        
+        function closeImportSuccess() {
+            closeModal('importModal');
+            resetImport();
+            renderDashboard();
+            renderClaimsList();
         }
 
         function showView(viewName) {

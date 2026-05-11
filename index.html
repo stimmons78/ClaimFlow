@@ -1881,14 +1881,85 @@
                 const claim = allClaims.find(c => c.id === s.claimId);
                 const overdue = isOverdue(s.date, s.time);
                 return `
-                    <div class="item-card ${overdue ? 'overdue' : ''}">
+                    <div class="item-card ${overdue ? 'overdue' : ''}" id="schedule-${s.id}">
                         <div style="font-size: 11px; color: #3498db; font-weight: 600; margin-bottom: 6px;">📋 ${claim ? claim.claimId : 'Unknown'}</div>
-                        <div class="item-title">${s.activity}</div>
-                        <div class="item-meta ${overdue ? 'overdue' : ''}">${overdue ? '⚠️ OVERDUE: ' : ''}${new Date(s.date).toLocaleDateString()}${s.time ? ' at ' + s.time : ''}</div>
+                        <div class="item-title" id="schedule-title-${s.id}">${s.activity}</div>
+                        <div class="item-meta ${overdue ? 'overdue' : ''}" id="schedule-meta-${s.id}">${overdue ? '⚠️ OVERDUE: ' : ''}${new Date(s.date).toLocaleDateString()}${s.time ? ' at ' + s.time : ''}</div>
                         ${claim ? `<div style="font-size: 11px; margin-top: 6px; color: #7f8c8d;">${claim.claimantName}</div>` : ''}
+                        <div class="item-actions">
+                            <button class="item-btn" onclick="editScheduleGlobal('${s.id}')">Edit</button>
+                            <button class="item-btn" onclick="deleteScheduleGlobal('${s.id}')" style="background: #fee; color: #c62828;">Delete</button>
+                        </div>
                     </div>
                 `;
             }).join('');
+        }
+        
+        function editScheduleGlobal(scheduleId) {
+            const schedule = allSchedules.find(s => s.id === scheduleId);
+            if (!schedule) return;
+            
+            const card = document.getElementById(`schedule-${scheduleId}`);
+            const activityOptions = ['Initial Inspection', 'Supplemental Inspection', 'Contractor Meeting', 'Follow-up Call', 'Settlement Meeting', 'Document Review', 'Appointment', 'Planned Inspection', 'Inspection Completed'];
+            
+            // Add custom option if current activity isn't in list
+            if (!activityOptions.includes(schedule.activity)) {
+                activityOptions.unshift(schedule.activity);
+            }
+            
+            const claim = allClaims.find(c => c.id === schedule.claimId);
+            
+            card.innerHTML = `
+                <div style="font-size: 11px; color: #3498db; font-weight: 600; margin-bottom: 6px;">📋 ${claim ? claim.claimId : 'Unknown'}</div>
+                <div style="margin-bottom: 8px;">
+                    <select id="edit-activity-${scheduleId}" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; margin-bottom: 6px;">
+                        ${activityOptions.map(opt => `<option value="${opt}" ${opt === schedule.activity ? 'selected' : ''}>${opt}</option>`).join('')}
+                    </select>
+                    <div style="display: flex; gap: 6px;">
+                        <input type="date" id="edit-date-${scheduleId}" value="${schedule.date}" style="flex: 1; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                        <input type="time" id="edit-time-${scheduleId}" value="${schedule.time || ''}" style="flex: 0.8; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                    </div>
+                </div>
+                <div class="item-actions">
+                    <button class="item-btn" onclick="saveScheduleEdit('${scheduleId}')" style="background: #3498db; color: white;">Save</button>
+                    <button class="item-btn" onclick="renderScheduleGlobal()">Cancel</button>
+                </div>
+            `;
+        }
+        
+        async function saveScheduleEdit(scheduleId) {
+            if (!currentUser) return;
+            
+            const activity = document.getElementById(`edit-activity-${scheduleId}`).value;
+            const date = document.getElementById(`edit-date-${scheduleId}`).value;
+            const time = document.getElementById(`edit-time-${scheduleId}`).value;
+            
+            if (!activity || !date) return;
+            
+            try {
+                await db.collection('users').doc(currentUser.uid).collection('schedules').doc(scheduleId).update({
+                    activity,
+                    date,
+                    time
+                });
+                await loadUserData();
+                renderScheduleGlobal();
+            } catch (error) {
+                console.error('Error updating schedule:', error);
+            }
+        }
+        
+        async function deleteScheduleGlobal(scheduleId) {
+            if (!currentUser) return;
+            if (!confirm('Delete this scheduled item?')) return;
+            
+            try {
+                await db.collection('users').doc(currentUser.uid).collection('schedules').doc(scheduleId).delete();
+                await loadUserData();
+                renderScheduleGlobal();
+            } catch (error) {
+                console.error('Error deleting schedule:', error);
+            }
         }
 
         function renderTasksGlobal() {

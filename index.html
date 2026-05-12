@@ -1478,6 +1478,18 @@
                                     <span class="detail-label">Symbility Link</span>
                                     <span class="detail-value" id="detailSymbilityUrl">-</span>
                                 </div>
+                                <div class="detail-row" id="detailRcvRow" style="display: none;">
+                                    <span class="detail-label">RCV</span>
+                                    <span class="detail-value" id="detailRcv">-</span>
+                                </div>
+                                <div class="detail-row" id="detailCarrierRow" style="display: none;">
+                                    <span class="detail-label">Carrier</span>
+                                    <span class="detail-value" id="detailCarrier">-</span>
+                                </div>
+                                <div class="detail-row" id="detailFlagsRow" style="display: none;">
+                                    <span class="detail-label">Flags</span>
+                                    <span class="detail-value" id="detailFlags">-</span>
+                                </div>
                                 <div class="detail-row" style="border-bottom: none;">
                                     <span class="detail-label">Status</span>
                                     <select id="claimStatusSelect" onchange="updateClaimStatus()" style="padding: 6px; font-size: 12px; border: 1px solid #ddd; border-radius: 6px;">
@@ -1627,6 +1639,42 @@
                         <textarea id="editClaimDescription"></textarea>
                     </div>
                 </div>
+                <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 12px;">Commission Info</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Property Type</label>
+                        <select id="editPropertyType">
+                            <option value="residential">Residential</option>
+                            <option value="commercial">Commercial</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>RCV — Cost of Repairs ($)</label>
+                        <input type="number" id="editClaimRcv" placeholder="25000" step="0.01" min="0">
+                    </div>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Carrier</label>
+                        <select id="editClaimCarrier">
+                            <option value="">— select carrier —</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Miles Driven</label>
+                        <input type="number" id="editClaimMiles" placeholder="0" min="0" step="1">
+                    </div>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label style="margin-bottom: 8px;">Claim Flags</label>
+                        <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                            <label style="display: flex; align-items: center; gap: 6px; font-weight: 400; cursor: pointer;"><input type="checkbox" id="editClaimIsDenial"> Denial</label>
+                            <label style="display: flex; align-items: center; gap: 6px; font-weight: 400; cursor: pointer;"><input type="checkbox" id="editClaimIsReinspection"> Reinspection</label>
+                            <label style="display: flex; align-items: center; gap: 6px; font-weight: 400; cursor: pointer;"><input type="checkbox" id="editClaimIsTandE"> T&amp;E (Manual Billing)</label>
+                        </div>
+                    </div>
+                </div>
                 <div class="button-group">
                     <button type="button" onclick="closeModal('editClaimModal')">Cancel</button>
                     <button type="submit" class="save-btn">Save Changes</button>
@@ -1637,46 +1685,31 @@
 
     <!-- Firm Modal -->
     <div class="modal" id="firmModal">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 780px;">
             <div class="modal-header">
                 <h2 id="firmModalTitle">Add Firm</h2>
                 <button class="close-btn" onclick="closeModal('firmModal')">&times;</button>
             </div>
             <form id="firmForm">
                 <input type="hidden" id="firmId" value="">
-                <div class="form-grid full">
+                <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Firm Details</div>
+                <div class="form-grid">
                     <div class="form-group">
                         <label>Firm Name *</label>
-                        <input type="text" id="firmName" placeholder="State Farm" required>
+                        <input type="text" id="firmName" placeholder="Pilot Catastrophe Services" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Contact Person</label>
+                        <input type="text" id="firmContact" placeholder="John Smith">
                     </div>
                 </div>
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>Daily Claim Rate ($)</label>
-                        <input type="number" id="firmDailyRate" placeholder="400" step="0.01">
+                        <label>Your Cut % <span style="font-size: 10px; color: #94a3b8; font-weight: 400;">(% of carrier fee the firm pays you)</span></label>
+                        <input type="number" id="firmCutPercentage" placeholder="60" step="0.1" min="0" max="100">
                     </div>
                     <div class="form-group">
-                        <label>CAT Claim Rate ($)</label>
-                        <input type="number" id="firmCatRate" placeholder="600" step="0.01">
-                    </div>
-                </div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Fee Type</label>
-                        <select id="firmFeeType">
-                            <option value="flat">Flat Rate</option>
-                            <option value="percentage">Percentage of Settlement</option>
-                            <option value="hourly">Hourly</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Percentage (if applicable)</label>
-                        <input type="number" id="firmPercentage" placeholder="15" step="0.1" min="0" max="100">
-                    </div>
-                </div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Payment Terms (days)</label>
+                        <label>Payment Terms</label>
                         <select id="firmPaymentTerms">
                             <option value="15">Net 15</option>
                             <option value="30" selected>Net 30</option>
@@ -1685,19 +1718,15 @@
                             <option value="90">Net 90</option>
                         </select>
                     </div>
+                </div>
+                <div class="form-grid">
                     <div class="form-group">
                         <label>SLA - Days to Inspect</label>
                         <input type="number" id="firmInspectionSLA" placeholder="5" min="1">
                     </div>
-                </div>
-                <div class="form-grid">
                     <div class="form-group">
                         <label>SLA - Days to Submit Report</label>
                         <input type="number" id="firmSubmitSLA" placeholder="14" min="1">
-                    </div>
-                    <div class="form-group">
-                        <label>Contact Person</label>
-                        <input type="text" id="firmContact" placeholder="John Smith">
                     </div>
                 </div>
                 <div class="form-grid full">
@@ -1706,11 +1735,94 @@
                         <textarea id="firmNotes" placeholder="Any specific requirements or notes about this firm..."></textarea>
                     </div>
                 </div>
-                <div class="button-group">
+                <!-- Carriers Section -->
+                <div style="border-top: 1px solid #e2e8f0; margin: 16px 0 0; padding-top: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div>
+                            <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">Carrier Fee Schedules</div>
+                            <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">Add each carrier this firm assigns through, with their RCV payout tiers</div>
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="openCarrierModal()" style="font-size: 12px; padding: 8px 14px;">+ Add Carrier</button>
+                    </div>
+                    <div id="firmCarriersList"></div>
+                </div>
+                <div class="button-group" style="margin-top: 20px;">
                     <button type="button" onclick="closeModal('firmModal')">Cancel</button>
                     <button type="submit" class="save-btn">Save Firm</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Carrier Modal -->
+    <div class="modal" id="carrierModal">
+        <div class="modal-content" style="max-width: 880px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h2 id="carrierModalTitle">Add Carrier</h2>
+                <button class="close-btn" onclick="closeModal('carrierModal')">&times;</button>
+            </div>
+            <input type="hidden" id="carrierEditIndex" value="-1">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Carrier / Insurance Company Name *</label>
+                    <input type="text" id="carrierName" placeholder="California Fair Plan">
+                </div>
+                <div class="form-group">
+                    <label>Reinspection Rate ($) <span style="font-size: 10px; color: #94a3b8; font-weight: 400;">— you get your cut % of this</span></label>
+                    <input type="number" id="reinspectionRate" placeholder="175" step="0.01">
+                </div>
+            </div>
+            <!-- Mileage -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 14px;">
+                <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">Mileage <span style="font-weight: 400; color: #94a3b8; text-transform: none; letter-spacing: 0;">— 100% goes to you</span></div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group" style="margin: 0;">
+                        <label>Free First (miles)</label>
+                        <input type="number" id="mileageFreeFirst" placeholder="50" min="0">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label>Rate per Additional Mile ($)</label>
+                        <input type="number" id="mileageRatePerMile" placeholder="1.80" step="0.01">
+                    </div>
+                </div>
+            </div>
+            <!-- Denial Fees -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 14px;">
+                <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">Denial Fees (Flat $ — carrier pays firm this amount, you get your cut %)</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px;">
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 11px;">Res Daily ($)</label>
+                        <input type="number" id="denialResDaily" placeholder="354" step="0.01">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 11px;">Comm Daily ($)</label>
+                        <input type="number" id="denialCommDaily" placeholder="390" step="0.01">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 11px;">Res CAT ($)</label>
+                        <input type="number" id="denialResCat" placeholder="414" step="0.01">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 11px;">Comm CAT ($)</label>
+                        <input type="number" id="denialCommCat" placeholder="456" step="0.01">
+                    </div>
+                </div>
+            </div>
+            <!-- RCV Tier Schedule -->
+            <div style="border-top: 1px solid #e2e8f0; padding-top: 16px;">
+                <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">RCV Fee Schedule — what the carrier pays the firm per tier</div>
+                <div style="display: flex; gap: 4px; margin-bottom: 14px; background: #f1f5f9; border-radius: 8px; padding: 4px;">
+                    <button type="button" id="tierTab_resDaily" onclick="switchTierTab('resDaily')" style="flex:1;padding:8px;border:none;border-radius:6px;background:#6366f1;color:white;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Res Daily</button>
+                    <button type="button" id="tierTab_commDaily" onclick="switchTierTab('commDaily')" style="flex:1;padding:8px;border:none;border-radius:6px;background:transparent;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Comm Daily</button>
+                    <button type="button" id="tierTab_resCat" onclick="switchTierTab('resCat')" style="flex:1;padding:8px;border:none;border-radius:6px;background:transparent;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Res CAT</button>
+                    <button type="button" id="tierTab_commCat" onclick="switchTierTab('commCat')" style="flex:1;padding:8px;border:none;border-radius:6px;background:transparent;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Comm CAT</button>
+                </div>
+                <div id="tierTableContainer"></div>
+            </div>
+            <div class="button-group" style="margin-top: 20px;">
+                <button type="button" onclick="closeModal('carrierModal')">Cancel</button>
+                <button type="button" class="save-btn" onclick="saveCarrier()">Save Carrier</button>
+            </div>
         </div>
     </div>
     
@@ -1974,6 +2086,41 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                         </select>
                     </div>
                 </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Property Type</label>
+                        <select id="propertyType">
+                            <option value="residential">Residential</option>
+                            <option value="commercial">Commercial</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>RCV — Cost of Repairs ($) <span style="font-size: 10px; color: #94a3b8; font-weight: 400;">used for commission calc</span></label>
+                        <input type="number" id="claimRcv" placeholder="25000" step="0.01" min="0">
+                    </div>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Carrier <span style="font-size: 10px; color: #94a3b8; font-weight: 400;">(from firm's fee schedule)</span></label>
+                        <select id="claimCarrier">
+                            <option value="">— select firm first —</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Miles Driven <span style="font-size: 10px; color: #94a3b8; font-weight: 400;">100% to you</span></label>
+                        <input type="number" id="claimMiles" placeholder="0" min="0" step="1">
+                    </div>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label style="margin-bottom: 8px;">Claim Flags</label>
+                        <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                            <label style="display: flex; align-items: center; gap: 6px; font-weight: 400; cursor: pointer;"><input type="checkbox" id="claimIsDenial"> Denial</label>
+                            <label style="display: flex; align-items: center; gap: 6px; font-weight: 400; cursor: pointer;"><input type="checkbox" id="claimIsReinspection"> Reinspection</label>
+                            <label style="display: flex; align-items: center; gap: 6px; font-weight: 400; cursor: pointer;"><input type="checkbox" id="claimIsTandE"> T&amp;E (Manual Billing)</label>
+                        </div>
+                    </div>
+                </div>
                 <div class="form-grid full">
                     <div class="form-group">
                         <label>Description / Instructions</label>
@@ -2017,6 +2164,10 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
         let allDiaryEntries = [];
         let allFirms = [];
         let allCommissions = [];
+        // Carrier editor state
+        let tempCarriers = [];
+        let activeTierTab = 'resDaily';
+        let tempTiers = { resDaily: [], commDaily: [], resCat: [], commCat: [] };
 
         // Initialize
         window.addEventListener('load', () => {
@@ -2147,7 +2298,17 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 document.getElementById('claimForm').reset();
                 document.getElementById('dateReported').valueAsDate = new Date();
                 document.getElementById('dateOfLoss').valueAsDate = new Date();
+                document.getElementById('claimCarrier').innerHTML = '<option value="">— select firm first —</option>';
                 openModal('claimModal');
+            });
+
+            // Auto-populate carrier dropdown when firm changes in new claim modal
+            document.getElementById('claimFirm').addEventListener('input', function() {
+                populateCarrierDropdown('claimCarrier', this.value, '');
+            });
+            // Auto-populate carrier when firm changes in edit modal
+            document.getElementById('editClaimFirm').addEventListener('input', function() {
+                populateCarrierDropdown('editClaimCarrier', this.value, '');
             });
             
             document.getElementById('importBtn').addEventListener('click', () => {
@@ -2976,21 +3137,18 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 if (newStatus === 'closed') {
                     const firm = allFirms.find(f => f.name === claim.firm);
                     const existingCommission = allCommissions.find(c => c.claimId === claimId);
-                    
+
                     if (firm && firm.paymentTerms) {
                         const closeDate = new Date();
                         const expectedPaymentDate = new Date(closeDate);
                         expectedPaymentDate.setDate(expectedPaymentDate.getDate() + firm.paymentTerms);
-                        
+
                         let expectedAmount = existingCommission?.expectedAmount;
                         if (!expectedAmount) {
-                            if (claim.claimType === 'cat' && firm.catRate) {
-                                expectedAmount = firm.catRate;
-                            } else if (firm.dailyRate) {
-                                expectedAmount = firm.dailyRate;
-                            }
+                            const calc = calculateExpectedCommission(claim, firm);
+                            expectedAmount = calc.amount || 0;
                         }
-                        
+
                         const commissionData = {
                             claimId: claimId,
                             expectedAmount: expectedAmount || 0,
@@ -2999,14 +3157,14 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                             expectedPaymentDate: expectedPaymentDate.toISOString().split('T')[0],
                             updatedAt: new Date()
                         };
-                        
+
                         if (existingCommission) {
                             await db.collection('users').doc(currentUser.uid).collection('commissions').doc(existingCommission.id).update(commissionData);
                         } else {
                             commissionData.createdAt = new Date();
                             await db.collection('users').doc(currentUser.uid).collection('commissions').add(commissionData);
                         }
-                        
+
                         await db.collection('users').doc(currentUser.uid).collection('diary').add({
                             claimId: claimId,
                             text: `💰 File closed - Payment expected by ${expectedPaymentDate.toLocaleDateString()} (Net ${firm.paymentTerms} from ${firm.name})`,
@@ -3190,6 +3348,13 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 dateReported: document.getElementById('dateReported').value,
                 contactPhone: document.getElementById('contactPhone').value || null,
                 claimType: document.getElementById('claimType').value,
+                propertyType: document.getElementById('propertyType').value || 'residential',
+                rcv: parseFloat(document.getElementById('claimRcv').value) || null,
+                carrier: document.getElementById('claimCarrier').value || null,
+                miles: parseFloat(document.getElementById('claimMiles').value) || 0,
+                isDenial: document.getElementById('claimIsDenial').checked,
+                isReinspection: document.getElementById('claimIsReinspection').checked,
+                isTandE: document.getElementById('claimIsTandE').checked,
                 description: document.getElementById('claimDescription').value,
                 status: 'new',
                 firm: document.getElementById('claimFirm').value,
@@ -3243,7 +3408,7 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             // Symbility-specific fields
             const managingFirmRow = document.getElementById('detailManagingFirmRow');
             const symbilityUrlRow = document.getElementById('detailSymbilityUrlRow');
-            
+
             if (managingFirmRow) {
                 if (claim.managingFirm) {
                     managingFirmRow.style.display = 'flex';
@@ -3252,7 +3417,7 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                     managingFirmRow.style.display = 'none';
                 }
             }
-            
+
             if (symbilityUrlRow) {
                 if (claim.symbilityUrl) {
                     symbilityUrlRow.style.display = 'flex';
@@ -3260,6 +3425,34 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 } else {
                     symbilityUrlRow.style.display = 'none';
                 }
+            }
+
+            // RCV & commission fields
+            const rcvRow = document.getElementById('detailRcvRow');
+            const carrierRow = document.getElementById('detailCarrierRow');
+            const flagsRow = document.getElementById('detailFlagsRow');
+            if (rcvRow) {
+                if (claim.rcv) {
+                    rcvRow.style.display = 'flex';
+                    document.getElementById('detailRcv').textContent = `$${parseFloat(claim.rcv).toLocaleString()}`;
+                } else { rcvRow.style.display = 'none'; }
+            }
+            if (carrierRow) {
+                if (claim.carrier) {
+                    carrierRow.style.display = 'flex';
+                    document.getElementById('detailCarrier').textContent = claim.carrier;
+                } else { carrierRow.style.display = 'none'; }
+            }
+            if (flagsRow) {
+                const flags = [];
+                if (claim.isDenial) flags.push('<span style="background:#fee2e2;color:#dc2626;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;">DENIAL</span>');
+                if (claim.isReinspection) flags.push('<span style="background:#fef3c7;color:#d97706;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;">REINSPECTION</span>');
+                if (claim.isTandE) flags.push('<span style="background:#ede9fe;color:#7c3aed;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;">T&E</span>');
+                if (claim.miles > 0) flags.push(`<span style="background:#e0f2fe;color:#0369a1;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;">${claim.miles} mi</span>`);
+                if (flags.length > 0) {
+                    flagsRow.style.display = 'flex';
+                    document.getElementById('detailFlags').innerHTML = flags.join(' ');
+                } else { flagsRow.style.display = 'none'; }
             }
             document.getElementById('claimStatusSelect').value = claim.status;
 
@@ -3320,23 +3513,19 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 if (newStatus === 'closed') {
                     const firm = allFirms.find(f => f.name === oldClaim.firm);
                     const existingCommission = allCommissions.find(c => c.claimId === selectedClaimId);
-                    
+
                     if (firm && firm.paymentTerms) {
                         const closeDate = new Date();
                         const expectedPaymentDate = new Date(closeDate);
                         expectedPaymentDate.setDate(expectedPaymentDate.getDate() + firm.paymentTerms);
                         const expectedDateStr = expectedPaymentDate.toISOString().split('T')[0];
-                        
-                        // Calculate expected amount based on firm rates
+
                         let expectedAmount = existingCommission?.expectedAmount;
                         if (!expectedAmount) {
-                            if (oldClaim.claimType === 'cat' && firm.catRate) {
-                                expectedAmount = firm.catRate;
-                            } else if (firm.dailyRate) {
-                                expectedAmount = firm.dailyRate;
-                            }
+                            const calc = calculateExpectedCommission(oldClaim, firm);
+                            expectedAmount = calc.amount || 0;
                         }
-                        
+
                         const commissionData = {
                             claimId: selectedClaimId,
                             expectedAmount: expectedAmount || 0,
@@ -3345,15 +3534,14 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                             expectedPaymentDate: expectedDateStr,
                             updatedAt: new Date()
                         };
-                        
+
                         if (existingCommission) {
                             await db.collection('users').doc(currentUser.uid).collection('commissions').doc(existingCommission.id).update(commissionData);
                         } else {
                             commissionData.createdAt = new Date();
                             await db.collection('users').doc(currentUser.uid).collection('commissions').add(commissionData);
                         }
-                        
-                        // Diary entry about expected payment
+
                         await db.collection('users').doc(currentUser.uid).collection('diary').add({
                             claimId: selectedClaimId,
                             text: `💰 File closed - Payment expected by ${expectedPaymentDate.toLocaleDateString()} (Net ${firm.paymentTerms} from ${firm.name})`,
@@ -4228,7 +4416,7 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             if (!selectedClaimId) return;
             const claim = allClaims.find(c => c.id === selectedClaimId);
             if (!claim) return;
-            
+
             document.getElementById('editClaimId').value = claim.claimId || '';
             document.getElementById('editXaId').value = claim.xaId || '';
             document.getElementById('editClaimantName').value = claim.claimantName || '';
@@ -4239,8 +4427,17 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             document.getElementById('editDateOfLoss').value = claim.dateOfLoss || '';
             document.getElementById('editClaimType').value = claim.claimType || 'daily';
             document.getElementById('editClaimDescription').value = claim.description || '';
-            
-            // Set type of loss - add as option if not in list
+            document.getElementById('editPropertyType').value = claim.propertyType || 'residential';
+            document.getElementById('editClaimRcv').value = claim.rcv || '';
+            document.getElementById('editClaimMiles').value = claim.miles || '';
+            document.getElementById('editClaimIsDenial').checked = !!claim.isDenial;
+            document.getElementById('editClaimIsReinspection').checked = !!claim.isReinspection;
+            document.getElementById('editClaimIsTandE').checked = !!claim.isTandE;
+
+            // Populate carrier dropdown
+            populateCarrierDropdown('editClaimCarrier', claim.firm, claim.carrier);
+
+            // Set type of loss
             const typeSelect = document.getElementById('editTypeOfLoss');
             let found = false;
             for (let opt of typeSelect.options) {
@@ -4253,14 +4450,14 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 typeSelect.appendChild(newOpt);
             }
             typeSelect.value = claim.typeOfLoss || 'Other';
-            
+
             openModal('editClaimModal');
         }
         
         async function saveEditClaim(e) {
             e.preventDefault();
             if (!selectedClaimId || !currentUser) return;
-            
+
             const updatedData = {
                 claimId: document.getElementById('editClaimId').value,
                 xaId: document.getElementById('editXaId').value || null,
@@ -4272,23 +4469,28 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 dateReported: document.getElementById('editDateReported').value,
                 dateOfLoss: document.getElementById('editDateOfLoss').value,
                 claimType: document.getElementById('editClaimType').value,
+                propertyType: document.getElementById('editPropertyType').value || 'residential',
+                rcv: parseFloat(document.getElementById('editClaimRcv').value) || null,
+                carrier: document.getElementById('editClaimCarrier').value || null,
+                miles: parseFloat(document.getElementById('editClaimMiles').value) || 0,
+                isDenial: document.getElementById('editClaimIsDenial').checked,
+                isReinspection: document.getElementById('editClaimIsReinspection').checked,
+                isTandE: document.getElementById('editClaimIsTandE').checked,
                 description: document.getElementById('editClaimDescription').value,
                 updatedAt: new Date()
             };
-            
+
             try {
                 await db.collection('users').doc(currentUser.uid).collection('claims').doc(selectedClaimId).update(updatedData);
-                
+
                 await db.collection('users').doc(currentUser.uid).collection('diary').add({
                     claimId: selectedClaimId,
                     text: `✏️ Claim details updated`,
                     createdAt: new Date(),
                     auto: true
                 });
-                
+
                 await loadUserData();
-                
-                // Refresh detail panel with updated data
                 openClaimDetail(selectedClaimId);
                 closeModal('editClaimModal');
             } catch (error) {
@@ -4329,46 +4531,215 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             document.getElementById('firmForm').reset();
             document.getElementById('firmId').value = '';
             document.getElementById('firmModalTitle').textContent = 'Add Firm';
-            
+            tempCarriers = [];
+
             if (firmId) {
                 const firm = allFirms.find(f => f.id === firmId);
                 if (firm) {
                     document.getElementById('firmModalTitle').textContent = 'Edit Firm';
                     document.getElementById('firmId').value = firm.id;
                     document.getElementById('firmName').value = firm.name || '';
-                    document.getElementById('firmDailyRate').value = firm.dailyRate || '';
-                    document.getElementById('firmCatRate').value = firm.catRate || '';
-                    document.getElementById('firmFeeType').value = firm.feeType || 'flat';
-                    document.getElementById('firmPercentage').value = firm.percentage || '';
+                    document.getElementById('firmContact').value = firm.contact || '';
+                    document.getElementById('firmCutPercentage').value = firm.cutPercentage !== undefined ? firm.cutPercentage : 60;
                     document.getElementById('firmPaymentTerms').value = firm.paymentTerms || '30';
                     document.getElementById('firmInspectionSLA').value = firm.inspectionSLA || '';
                     document.getElementById('firmSubmitSLA').value = firm.submitSLA || '';
-                    document.getElementById('firmContact').value = firm.contact || '';
                     document.getElementById('firmNotes').value = firm.notes || '';
+                    tempCarriers = JSON.parse(JSON.stringify(firm.carriers || []));
                 }
             }
-            
+            renderFirmCarriersList();
             openModal('firmModal');
         }
-        
+
+        function renderFirmCarriersList() {
+            const container = document.getElementById('firmCarriersList');
+            if (!tempCarriers || tempCarriers.length === 0) {
+                container.innerHTML = `<div style="text-align:center;padding:20px;color:#94a3b8;font-size:13px;border:1px dashed #e2e8f0;border-radius:8px;">No carriers yet. Click "+ Add Carrier" to add a carrier and their fee schedule.</div>`;
+                return;
+            }
+            container.innerHTML = tempCarriers.map((c, i) => {
+                const tierCount = Object.values(c.tiers || {}).reduce((s, arr) => s + (arr?.length || 0), 0);
+                return `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px;">
+                    <div>
+                        <div style="font-size:13px;font-weight:600;color:#0f172a;">${c.name}</div>
+                        <div style="font-size:11px;color:#64748b;margin-top:2px;">Mileage: ${c.mileageFreeFirst||50} free + $${c.mileageRatePerMile||1.80}/mi &nbsp;•&nbsp; ${tierCount} tier entries</div>
+                    </div>
+                    <div style="display:flex;gap:6px;">
+                        <button type="button" class="item-btn" onclick="openCarrierModal(${i})">Edit</button>
+                        <button type="button" class="item-btn" onclick="deleteCarrier(${i})" style="background:#fee;color:#c62828;">Delete</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function deleteCarrier(index) {
+            if (!confirm('Remove this carrier and its fee schedule?')) return;
+            tempCarriers.splice(index, 1);
+            renderFirmCarriersList();
+        }
+
+        function openCarrierModal(editIndex = -1) {
+            document.getElementById('carrierEditIndex').value = editIndex;
+            activeTierTab = 'resDaily';
+
+            if (editIndex >= 0) {
+                const c = tempCarriers[editIndex];
+                document.getElementById('carrierModalTitle').textContent = 'Edit Carrier';
+                document.getElementById('carrierName').value = c.name || '';
+                document.getElementById('denialResDaily').value = c.denialFees?.resDaily || '';
+                document.getElementById('denialCommDaily').value = c.denialFees?.commDaily || '';
+                document.getElementById('denialResCat').value = c.denialFees?.resCat || '';
+                document.getElementById('denialCommCat').value = c.denialFees?.commCat || '';
+                document.getElementById('mileageFreeFirst').value = c.mileageFreeFirst || '';
+                document.getElementById('mileageRatePerMile').value = c.mileageRatePerMile || '';
+                document.getElementById('reinspectionRate').value = c.reinspectionRate || '';
+                tempTiers = JSON.parse(JSON.stringify(c.tiers || { resDaily:[], commDaily:[], resCat:[], commCat:[] }));
+            } else {
+                document.getElementById('carrierModalTitle').textContent = 'Add Carrier';
+                document.getElementById('carrierName').value = '';
+                document.getElementById('denialResDaily').value = '';
+                document.getElementById('denialCommDaily').value = '';
+                document.getElementById('denialResCat').value = '';
+                document.getElementById('denialCommCat').value = '';
+                document.getElementById('mileageFreeFirst').value = '50';
+                document.getElementById('mileageRatePerMile').value = '1.80';
+                document.getElementById('reinspectionRate').value = '175';
+                tempTiers = { resDaily:[], commDaily:[], resCat:[], commCat:[] };
+            }
+            switchTierTab('resDaily');
+            openModal('carrierModal');
+        }
+
+        function switchTierTab(tab) {
+            activeTierTab = tab;
+            ['resDaily','commDaily','resCat','commCat'].forEach(t => {
+                const btn = document.getElementById(`tierTab_${t}`);
+                if (btn) {
+                    btn.style.background = t === tab ? '#6366f1' : 'transparent';
+                    btn.style.color = t === tab ? 'white' : '#64748b';
+                }
+            });
+            renderTierTable();
+        }
+
+        function renderTierTable() {
+            const tiers = tempTiers[activeTierTab] || [];
+            const labels = { resDaily:'Residential Daily', commDaily:'Commercial Daily', resCat:'Residential CAT', commCat:'Commercial CAT' };
+            const container = document.getElementById('tierTableContainer');
+            if (!container) return;
+            container.innerHTML = `
+                <div style="font-size:12px;color:#64748b;margin-bottom:8px;">${labels[activeTierTab]} — what the carrier pays the firm per RCV range</div>
+                <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                    <thead><tr style="background:#f1f5f9;">
+                        <th style="padding:8px 10px;text-align:left;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #e2e8f0;white-space:nowrap;">Min RCV ($)</th>
+                        <th style="padding:8px 10px;text-align:left;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #e2e8f0;white-space:nowrap;">Max RCV ($)</th>
+                        <th style="padding:8px 10px;text-align:left;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #e2e8f0;">Type</th>
+                        <th style="padding:8px 10px;text-align:left;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #e2e8f0;">Amount</th>
+                        <th style="padding:8px 10px;text-align:left;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #e2e8f0;white-space:nowrap;">Min $ (if %)</th>
+                        <th style="padding:8px 10px;border-bottom:1px solid #e2e8f0;width:40px;"></th>
+                    </tr></thead>
+                    <tbody>${tiers.map((tier, i) => renderTierRow(tier, i)).join('')}</tbody>
+                </table>
+                </div>
+                <button type="button" onclick="addTierRow()" style="margin-top:10px;padding:8px 14px;background:#f1f5f9;border:1px dashed #cbd5e1;border-radius:6px;color:#475569;font-size:12px;cursor:pointer;font-family:inherit;">+ Add Tier Row</button>
+            `;
+        }
+
+        function renderTierRow(tier, i) {
+            const isFlat = tier.payoutType === 'flat' || !tier.payoutType;
+            const isPct = tier.payoutType === 'pct_min';
+            const isTae = tier.payoutType === 'tae';
+            return `<tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:6px 8px;"><input type="number" value="${tier.min||0}" step="0.01" onchange="updateTier(${i},'min',this.value)" style="width:85px;padding:4px 6px;border:1px solid #e2e8f0;border-radius:4px;font-size:12px;font-family:inherit;"></td>
+                <td style="padding:6px 8px;"><input type="number" value="${tier.max===null||tier.max===undefined?'':tier.max}" step="0.01" placeholder="(no max)" onchange="updateTier(${i},'max',this.value)" style="width:85px;padding:4px 6px;border:1px solid #e2e8f0;border-radius:4px;font-size:12px;font-family:inherit;"></td>
+                <td style="padding:6px 8px;"><select onchange="updateTier(${i},'payoutType',this.value);renderTierTable();" style="padding:4px 6px;border:1px solid #e2e8f0;border-radius:4px;font-size:12px;font-family:inherit;">
+                    <option value="flat" ${isFlat?'selected':''}>Flat $</option>
+                    <option value="pct_min" ${isPct?'selected':''}> % + Min</option>
+                    <option value="tae" ${isTae?'selected':''}>T&E</option>
+                </select></td>
+                <td style="padding:6px 8px;">
+                    ${isFlat?`<input type="number" value="${tier.flatAmount||''}" step="0.01" placeholder="354" onchange="updateTier(${i},'flatAmount',this.value)" style="width:80px;padding:4px 6px;border:1px solid #e2e8f0;border-radius:4px;font-size:12px;font-family:inherit;">`:''}
+                    ${isPct?`<div style="display:flex;align-items:center;gap:4px;"><input type="number" value="${tier.pct||''}" step="0.1" placeholder="3.5" onchange="updateTier(${i},'pct',this.value)" style="width:55px;padding:4px 6px;border:1px solid #e2e8f0;border-radius:4px;font-size:12px;font-family:inherit;"><span style="font-size:11px;color:#64748b;">%</span></div>`:''}
+                    ${isTae?`<span style="color:#94a3b8;font-size:11px;font-style:italic;">Manual billing</span>`:''}
+                </td>
+                <td style="padding:6px 8px;">
+                    ${isPct?`<input type="number" value="${tier.minAmount||''}" step="0.01" placeholder="1275" onchange="updateTier(${i},'minAmount',this.value)" style="width:80px;padding:4px 6px;border:1px solid #e2e8f0;border-radius:4px;font-size:12px;font-family:inherit;">`:''}
+                </td>
+                <td style="padding:6px 8px;"><button type="button" onclick="deleteTierRow(${i})" style="padding:3px 8px;background:#fee;color:#c62828;border:1px solid #fca5a5;border-radius:4px;cursor:pointer;font-size:11px;font-family:inherit;">✕</button></td>
+            </tr>`;
+        }
+
+        function addTierRow() {
+            if (!tempTiers[activeTierTab]) tempTiers[activeTierTab] = [];
+            const tiers = tempTiers[activeTierTab];
+            const last = tiers[tiers.length - 1];
+            const newMin = last && last.max != null ? parseFloat(last.max) + 0.01 : 0;
+            tiers.push({ min: newMin, max: null, payoutType: 'flat', flatAmount: 0 });
+            renderTierTable();
+        }
+
+        function deleteTierRow(i) {
+            tempTiers[activeTierTab].splice(i, 1);
+            renderTierTable();
+        }
+
+        function updateTier(i, field, value) {
+            if (!tempTiers[activeTierTab]) return;
+            const tier = tempTiers[activeTierTab][i];
+            if (!tier) return;
+            if (field === 'max') tier[field] = value === '' ? null : parseFloat(value);
+            else if (field === 'payoutType') tier[field] = value;
+            else tier[field] = parseFloat(value) || 0;
+        }
+
+        function saveCarrier() {
+            const name = (document.getElementById('carrierName').value || '').trim();
+            if (!name) { alert('Carrier name is required'); return; }
+
+            const carrierData = {
+                id: Date.now().toString(),
+                name,
+                denialFees: {
+                    resDaily: parseFloat(document.getElementById('denialResDaily').value) || 0,
+                    commDaily: parseFloat(document.getElementById('denialCommDaily').value) || 0,
+                    resCat: parseFloat(document.getElementById('denialResCat').value) || 0,
+                    commCat: parseFloat(document.getElementById('denialCommCat').value) || 0,
+                },
+                mileageFreeFirst: parseFloat(document.getElementById('mileageFreeFirst').value) || 50,
+                mileageRatePerMile: parseFloat(document.getElementById('mileageRatePerMile').value) || 1.80,
+                reinspectionRate: parseFloat(document.getElementById('reinspectionRate').value) || 175,
+                tiers: JSON.parse(JSON.stringify(tempTiers))
+            };
+
+            const editIndex = parseInt(document.getElementById('carrierEditIndex').value);
+            if (editIndex >= 0) {
+                carrierData.id = tempCarriers[editIndex].id || carrierData.id;
+                tempCarriers[editIndex] = carrierData;
+            } else {
+                tempCarriers.push(carrierData);
+            }
+            closeModal('carrierModal');
+            renderFirmCarriersList();
+        }
+
         async function saveFirm(e) {
             e.preventDefault();
             if (!currentUser) return;
-            
+
             const firmId = document.getElementById('firmId').value;
             const firmData = {
                 name: document.getElementById('firmName').value,
-                dailyRate: parseFloat(document.getElementById('firmDailyRate').value) || 0,
-                catRate: parseFloat(document.getElementById('firmCatRate').value) || 0,
-                feeType: document.getElementById('firmFeeType').value,
-                percentage: parseFloat(document.getElementById('firmPercentage').value) || 0,
+                contact: document.getElementById('firmContact').value,
+                cutPercentage: parseFloat(document.getElementById('firmCutPercentage').value) || 60,
                 paymentTerms: parseInt(document.getElementById('firmPaymentTerms').value) || 30,
                 inspectionSLA: parseInt(document.getElementById('firmInspectionSLA').value) || 0,
                 submitSLA: parseInt(document.getElementById('firmSubmitSLA').value) || 0,
-                contact: document.getElementById('firmContact').value,
-                notes: document.getElementById('firmNotes').value
+                notes: document.getElementById('firmNotes').value,
+                carriers: tempCarriers
             };
-            
+
             try {
                 if (firmId) {
                     await db.collection('users').doc(currentUser.uid).collection('firms').doc(firmId).update(firmData);
@@ -4376,7 +4747,6 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                     firmData.createdAt = new Date();
                     await db.collection('users').doc(currentUser.uid).collection('firms').add(firmData);
                 }
-                
                 await loadUserData();
                 renderFirmsView();
                 closeModal('firmModal');
@@ -4400,56 +4770,168 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
         
         function renderFirmsView() {
             const container = document.getElementById('firmsList');
-            
+
             if (allFirms.length === 0) {
                 container.innerHTML = `
                     <div class="empty-section" style="padding: 60px 20px;">
                         <div style="font-size: 48px; margin-bottom: 16px;">🏢</div>
                         <div style="font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 8px;">No firms added yet</div>
-                        <div style="font-size: 13px; color: #64748b;">Add your first firm to start tracking commissions automatically</div>
+                        <div style="font-size: 13px; color: #64748b;">Add your first firm to configure carrier fee schedules and auto-calculate commissions</div>
                     </div>
                 `;
                 return;
             }
-            
+
             container.innerHTML = `
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 20px;">
-                    ${allFirms.map(firm => `
-                        <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; transition: all 0.2s;" onmouseover="this.style.boxShadow='0 8px 20px rgba(99, 102, 241, 0.08)'; this.style.borderColor='#6366f1'" onmouseout="this.style.boxShadow=''; this.style.borderColor='#e2e8f0'">
-                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 20px;">
+                    ${allFirms.map(firm => {
+                        const carriers = firm.carriers || [];
+                        const cut = firm.cutPercentage || 60;
+                        return `
+                        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;transition:all 0.2s;" onmouseover="this.style.boxShadow='0 8px 20px rgba(99,102,241,0.08)';this.style.borderColor='#6366f1'" onmouseout="this.style.boxShadow='';this.style.borderColor='#e2e8f0'">
+                            <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:16px;">
                                 <div>
-                                    <div style="font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">${firm.name}</div>
-                                    ${firm.contact ? `<div style="font-size: 12px; color: #64748b;">👤 ${firm.contact}</div>` : ''}
+                                    <div style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:4px;">${firm.name}</div>
+                                    ${firm.contact ? `<div style="font-size:12px;color:#64748b;">👤 ${firm.contact}</div>` : ''}
                                 </div>
-                                <div style="display: flex; gap: 6px;">
+                                <div style="display:flex;gap:6px;">
                                     <button class="item-btn" onclick="openFirmModal('${firm.id}')">Edit</button>
-                                    <button class="item-btn" onclick="deleteFirm('${firm.id}')" style="background: #fee; color: #c62828;">Delete</button>
+                                    <button class="item-btn" onclick="deleteFirm('${firm.id}')" style="background:#fee;color:#c62828;">Delete</button>
                                 </div>
                             </div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-top: 12px; border-top: 1px solid #f1f5f9;">
+                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding-top:12px;border-top:1px solid #f1f5f9;margin-bottom:${carriers.length?'14px':'0'};">
                                 <div>
-                                    <div style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Daily Rate</div>
-                                    <div style="font-size: 16px; font-weight: 700; color: #0f172a;">$${firm.dailyRate || 0}</div>
+                                    <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Your Cut</div>
+                                    <div style="font-size:18px;font-weight:700;color:#6366f1;">${cut}%</div>
                                 </div>
                                 <div>
-                                    <div style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">CAT Rate</div>
-                                    <div style="font-size: 16px; font-weight: 700; color: #f59e0b;">$${firm.catRate || 0}</div>
+                                    <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Payment Terms</div>
+                                    <div style="font-size:14px;font-weight:600;color:#475569;">Net ${firm.paymentTerms||30}</div>
                                 </div>
                                 <div>
-                                    <div style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Payment Terms</div>
-                                    <div style="font-size: 13px; font-weight: 600; color: #475569;">Net ${firm.paymentTerms || 30}</div>
-                                </div>
-                                <div>
-                                    <div style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">SLA</div>
-                                    <div style="font-size: 13px; font-weight: 600; color: #475569;">${firm.inspectionSLA || '-'}d / ${firm.submitSLA || '-'}d</div>
+                                    <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">SLA</div>
+                                    <div style="font-size:13px;font-weight:600;color:#475569;">${firm.inspectionSLA||'-'}d insp / ${firm.submitSLA||'-'}d submit</div>
                                 </div>
                             </div>
-                        </div>
-                    `).join('')}
+                            ${carriers.length ? `
+                            <div style="border-top:1px solid #f1f5f9;padding-top:12px;">
+                                <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Carriers (${carriers.length})</div>
+                                ${carriers.map(c => {
+                                    const tierCount = Object.values(c.tiers||{}).reduce((s,a)=>s+(a?.length||0),0);
+                                    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#f8fafc;border-radius:6px;margin-bottom:4px;font-size:12px;">
+                                        <span style="font-weight:600;color:#0f172a;">${c.name}</span>
+                                        <span style="color:#64748b;">${tierCount} tiers &nbsp;•&nbsp; $${c.mileageRatePerMile||1.80}/mi</span>
+                                    </div>`;
+                                }).join('')}
+                            </div>` : `<div style="padding-top:12px;border-top:1px solid #f1f5f9;font-size:12px;color:#94a3b8;font-style:italic;">No carrier fee schedules configured yet</div>`}
+                        </div>`;
+                    }).join('')}
                 </div>
             `;
         }
         
+        // ============ COMMISSION CALCULATION ENGINE ============
+
+        function calculateExpectedCommission(claim, firm) {
+            if (!firm) return { amount: 0, breakdown: 'No firm found', isTandE: false };
+
+            const cutPct = (firm.cutPercentage !== undefined ? firm.cutPercentage : 60) / 100;
+
+            // No carriers set up — fall back to legacy flat rate
+            if (!firm.carriers || firm.carriers.length === 0) {
+                let legacyAmount = 0;
+                if (claim.claimType === 'cat' && firm.catRate) legacyAmount = firm.catRate;
+                else if (firm.dailyRate) legacyAmount = firm.dailyRate;
+                return { amount: legacyAmount, breakdown: 'Legacy rate (no carrier schedule configured)', isTandE: false };
+            }
+
+            const carrier = firm.carriers.find(c => c.name === claim.carrier);
+            if (!carrier) {
+                return { amount: 0, breakdown: claim.carrier ? `Carrier "${claim.carrier}" not found in firm` : 'No carrier selected on claim', isTandE: false };
+            }
+
+            // Build schedule key: resDaily / commDaily / resCat / commCat
+            const propType = claim.propertyType === 'commercial' ? 'comm' : 'res';
+            const claimCat = claim.claimType === 'cat' ? 'Cat' : 'Daily';
+            const scheduleKey = `${propType}${claimCat}`;
+
+            let total = 0;
+            const breakdownLines = [];
+            let isTandE = false;
+            const cutDisplay = `${firm.cutPercentage || 60}%`;
+
+            if (claim.isDenial) {
+                const denialFee = carrier.denialFees?.[scheduleKey] || 0;
+                const commission = denialFee * cutPct;
+                total += commission;
+                breakdownLines.push(`Denial fee: $${denialFee} × ${cutDisplay} = $${commission.toFixed(2)}`);
+            } else if (claim.isTandE) {
+                isTandE = true;
+                breakdownLines.push('T&E — Manual billing required');
+            } else {
+                const rcv = parseFloat(claim.rcv) || 0;
+                const tiers = carrier.tiers?.[scheduleKey] || [];
+                const tier = tiers.find(t =>
+                    rcv >= (t.min || 0) &&
+                    (t.max === null || t.max === undefined || rcv <= parseFloat(t.max))
+                );
+
+                if (tier) {
+                    if (tier.payoutType === 'flat') {
+                        const feeAmount = parseFloat(tier.flatAmount) || 0;
+                        const commission = feeAmount * cutPct;
+                        total += commission;
+                        breakdownLines.push(`RCV $${rcv.toLocaleString()} → Flat $${feeAmount} × ${cutDisplay} = $${commission.toFixed(2)}`);
+                    } else if (tier.payoutType === 'pct_min') {
+                        const pctAmount = rcv * ((parseFloat(tier.pct) || 0) / 100);
+                        const feeAmount = Math.max(pctAmount, parseFloat(tier.minAmount) || 0);
+                        const commission = feeAmount * cutPct;
+                        total += commission;
+                        breakdownLines.push(`RCV $${rcv.toLocaleString()} → ${tier.pct}% (min $${tier.minAmount}) = $${feeAmount.toFixed(2)} × ${cutDisplay} = $${commission.toFixed(2)}`);
+                    } else if (tier.payoutType === 'tae') {
+                        isTandE = true;
+                        breakdownLines.push('T&E tier — Manual billing required');
+                    }
+                } else if (tiers.length > 0) {
+                    breakdownLines.push(`No tier found for RCV $${rcv.toLocaleString()} — check fee schedule`);
+                } else {
+                    breakdownLines.push('No tiers configured for this claim type');
+                }
+            }
+
+            // Reinspection (cut % applies)
+            if (claim.isReinspection && !claim.isDenial && !claim.isTandE) {
+                const reinspRate = parseFloat(carrier.reinspectionRate) || 175;
+                const commission = reinspRate * cutPct;
+                total += commission;
+                breakdownLines.push(`Reinspection: $${reinspRate} × ${cutDisplay} = $${commission.toFixed(2)}`);
+            }
+
+            // Mileage (100% to Sean)
+            const miles = parseFloat(claim.miles) || 0;
+            if (miles > 0) {
+                const freeFirst = parseFloat(carrier.mileageFreeFirst) || 50;
+                const ratePerMile = parseFloat(carrier.mileageRatePerMile) || 1.80;
+                const billable = Math.max(0, miles - freeFirst);
+                const mileageAmount = billable * ratePerMile;
+                total += mileageAmount;
+                breakdownLines.push(`Mileage: ${miles} mi (${billable} billable @ $${ratePerMile}/mi) = $${mileageAmount.toFixed(2)} (100% to you)`);
+            }
+
+            return { amount: total, breakdown: breakdownLines.join('\n'), isTandE, carrier: carrier.name };
+        }
+
+        // Helper: populate carrier dropdown from a firm name
+        function populateCarrierDropdown(selectId, firmName, selectedCarrier) {
+            const sel = document.getElementById(selectId);
+            if (!sel) return;
+            const firm = allFirms.find(f => f.name === firmName);
+            const carriers = firm?.carriers || [];
+            sel.innerHTML = carriers.length
+                ? `<option value="">— select carrier —</option>` + carriers.map(c => `<option value="${c.name}" ${c.name === selectedCarrier ? 'selected' : ''}>${c.name}</option>`).join('')
+                : `<option value="">— configure carriers in Firms —</option>`;
+        }
+
         // ============ COMMISSIONS MANAGEMENT ============
         
         function renderCommissionsView() {
@@ -4931,11 +5413,8 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             // Auto-calculate expected from firm settings if no existing data
             let expectedAmount = existingCommission?.expectedAmount;
             if (!expectedAmount && firm) {
-                if (claim.claimType === 'cat' && firm.catRate) {
-                    expectedAmount = firm.catRate;
-                } else if (firm.dailyRate) {
-                    expectedAmount = firm.dailyRate;
-                }
+                const calc = calculateExpectedCommission(claim, firm);
+                expectedAmount = calc.amount || 0;
             }
             
             // Auto-calculate expected payment date FROM CLOSE DATE

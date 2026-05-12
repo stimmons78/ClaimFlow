@@ -581,6 +581,11 @@
             color: #92400e;
         }
         
+        .status-in-qa {
+            background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+            color: #5b21b6;
+        }
+        
         .status-closed { 
             background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); 
             color: #065f46;
@@ -1234,6 +1239,7 @@
                                     <option value="">All Statuses</option>
                                     <option value="new">New</option>
                                     <option value="in-progress">In Progress</option>
+                                    <option value="in-qa">In QA</option>
                                     <option value="closed">Closed</option>
                                 </select>
                                 <select id="filterType" onchange="filterClaims()" style="padding: 10px 14px;">
@@ -1365,6 +1371,15 @@
                             </div>
                         </div>
                         
+                        <!-- Weekly Payment Forecast -->
+                        <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; margin-bottom: 24px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                <h3 style="font-size: 14px; font-weight: 700; color: #0f172a;">📅 Weekly Payment Forecast</h3>
+                                <span style="font-size: 11px; color: #94a3b8;">Based on closed claims + firm payment terms</span>
+                            </div>
+                            <div id="weeklyForecast"></div>
+                        </div>
+                        
                         <!-- Top Firms -->
                         <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; margin-bottom: 24px;">
                             <h3 style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 16px;">🏆 Top Earning Firms</h3>
@@ -1468,6 +1483,7 @@
                                     <select id="claimStatusSelect" onchange="updateClaimStatus()" style="padding: 6px; font-size: 12px; border: 1px solid #ddd; border-radius: 6px;">
                                         <option value="new">New</option>
                                         <option value="in-progress">In Progress</option>
+                                        <option value="in-qa">In QA</option>
                                         <option value="closed">Closed</option>
                                     </select>
                                 </div>
@@ -2396,6 +2412,40 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             `;
         }
         
+        function setPlatform(platform) {
+            document.getElementById('claimPlatform').value = platform;
+            
+            ['xa', 'symbility', 'manual'].forEach(p => {
+                const btn = document.getElementById('platform' + p.charAt(0).toUpperCase() + p.slice(1));
+                if (!btn) return;
+                if (p === platform) {
+                    btn.style.background = '#6366f1';
+                    btn.style.color = 'white';
+                    btn.style.borderColor = '#6366f1';
+                } else {
+                    btn.style.background = '#fff';
+                    btn.style.color = '#475569';
+                    btn.style.borderColor = '#e2e8f0';
+                }
+            });
+            
+            // Show/hide Symbility fields
+            const managingFirmGroup = document.getElementById('managingFirmGroup');
+            if (managingFirmGroup) managingFirmGroup.style.display = platform === 'symbility' ? 'grid' : 'none';
+            
+            // Show/hide XA ID
+            const xaIdGroup = document.getElementById('xaIdGroup');
+            if (xaIdGroup) xaIdGroup.style.display = platform === 'xa' ? 'flex' : 'none';
+            
+            // Update placeholder
+            const claimIdInput = document.getElementById('claimId');
+            if (claimIdInput) {
+                if (platform === 'symbility') claimIdInput.placeholder = '871616AA-001';
+                else if (platform === 'xa') claimIdInput.placeholder = '2035968';
+                else claimIdInput.placeholder = 'CLM-2024-001';
+            }
+        }
+        
         function setImportPlatform(platform) {
             document.getElementById('importPlatform').value = platform;
             
@@ -2850,6 +2900,7 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             const columns = {
                 'new': { title: 'New', color: '#3b82f6', bgColor: '#dbeafe', claims: [] },
                 'in-progress': { title: 'In Progress', color: '#f59e0b', bgColor: '#fef3c7', claims: [] },
+                'in-qa': { title: 'In QA', color: '#5b21b6', bgColor: '#ede9fe', claims: [] },
                 'closed': { title: 'Closed', color: '#10b981', bgColor: '#d1fae5', claims: [] }
             };
             
@@ -2913,7 +2964,7 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 await db.collection('users').doc(currentUser.uid).collection('claims').doc(claimId).update(updateData);
                 
                 // Auto-diary entry
-                const statusLabels = { 'new': 'New', 'in-progress': 'In Progress', 'closed': 'Closed' };
+                const statusLabels = { 'new': 'New', 'in-progress': 'In Progress', 'in-qa': 'In QA', 'closed': 'Closed' };
                 await db.collection('users').doc(currentUser.uid).collection('diary').add({
                     claimId: claimId,
                     text: `Status changed: ${statusLabels[claim.status] || claim.status} → ${statusLabels[newStatus] || newStatus}`,
@@ -3254,6 +3305,7 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 const statusLabels = {
                     'new': 'New',
                     'in-progress': 'In Progress',
+                    'in-qa': 'In QA',
                     'closed': 'Closed'
                 };
                 
@@ -4491,6 +4543,9 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             
             document.getElementById('topFirmsList').innerHTML = topFirmsHTML;
             
+            // Weekly Forecast
+            renderWeeklyForecast();
+            
             // Update firm filter
             const firmFilter = document.getElementById('commissionFirm');
             if (firmFilter) {
@@ -4500,6 +4555,91 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             }
             
             renderCommissionsList();
+        }
+        
+        function renderWeeklyForecast() {
+            const container = document.getElementById('weeklyForecast');
+            if (!container) return;
+            
+            const now = new Date();
+            const weeks = [];
+            
+            // Build 8 weeks of data
+            for (let w = 0; w < 8; w++) {
+                const weekStart = new Date(now);
+                weekStart.setDate(now.getDate() + (w * 7));
+                weekStart.setHours(0, 0, 0, 0);
+                
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekStart.getDate() + 6);
+                weekEnd.setHours(23, 59, 59, 999);
+                
+                const weekClaims = [];
+                let weekTotal = 0;
+                
+                allCommissions.forEach(commission => {
+                    if (commission.paymentStatus === 'paid') return;
+                    if (!commission.expectedPaymentDate) return;
+                    
+                    const payDate = new Date(commission.expectedPaymentDate);
+                    if (payDate >= weekStart && payDate <= weekEnd) {
+                        const claim = allClaims.find(c => c.id === commission.claimId);
+                        const amount = parseFloat(commission.expectedAmount || 0);
+                        weekTotal += amount;
+                        weekClaims.push({ claim, commission, amount, payDate });
+                    }
+                });
+                
+                weeks.push({ weekStart, weekEnd, weekClaims, weekTotal });
+            }
+            
+            // Check if any weeks have data
+            const hasData = weeks.some(w => w.weekTotal > 0);
+            
+            if (!hasData) {
+                container.innerHTML = '<div class="empty-section">No upcoming payments found. Close claims and set up firm payment terms to see weekly forecast.</div>';
+                return;
+            }
+            
+            container.innerHTML = weeks.map((week, idx) => {
+                const isThisWeek = idx === 0;
+                const label = isThisWeek ? 'This Week' : 
+                              idx === 1 ? 'Next Week' : 
+                              `Week of ${week.weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+                
+                if (week.weekTotal === 0 && idx > 3) return ''; // Hide empty weeks after week 4
+                
+                return `
+                    <div style="border: 1px solid ${isThisWeek ? '#10b981' : '#e2e8f0'}; border-radius: 10px; margin-bottom: 12px; overflow: hidden; ${isThisWeek ? 'box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);' : ''}">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: ${isThisWeek ? 'linear-gradient(135deg, #f0fdf4, #dcfce7)' : '#f8fafc'}; cursor: pointer;" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'">
+                            <div>
+                                <div style="font-size: 13px; font-weight: 700; color: ${isThisWeek ? '#059669' : '#0f172a'};">${label} ${isThisWeek ? '⭐' : ''}</div>
+                                <div style="font-size: 11px; color: #94a3b8;">${week.weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${week.weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 20px; font-weight: 800; color: ${isThisWeek ? '#059669' : week.weekTotal > 0 ? '#0f172a' : '#94a3b8'};">$${week.weekTotal.toLocaleString('en-US', { minimumFractionDigits: 0 })}</div>
+                                <div style="font-size: 11px; color: #94a3b8;">${week.weekClaims.length} payment${week.weekClaims.length !== 1 ? 's' : ''}</div>
+                            </div>
+                        </div>
+                        <div style="${idx === 0 ? '' : 'display: none;'} padding: 12px 16px; border-top: 1px solid #e2e8f0;">
+                            ${week.weekClaims.length === 0 ? '<div style="font-size: 12px; color: #94a3b8; text-align: center; padding: 8px;">No payments expected this week</div>' :
+                            week.weekClaims.map(({ claim, commission, amount, payDate }) => `
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f1f5f9;">
+                                    <div>
+                                        <div style="font-size: 12px; font-weight: 600; color: #0f172a;">${claim ? claim.claimId : 'Unknown'}</div>
+                                        <div style="font-size: 11px; color: #64748b;">${claim ? claim.claimantName : ''} • ${claim ? claim.firm : ''}</div>
+                                        <div style="font-size: 10px; color: #94a3b8;">Expected: ${payDate.toLocaleDateString()}</div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 14px; font-weight: 700; color: #10b981;">$${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                                        <button onclick="openCommissionModal('${claim?.id}')" style="font-size: 10px; padding: 3px 8px; background: #6366f1; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 4px;">Manage</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
         
         function renderCommissionsList() {

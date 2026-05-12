@@ -3157,32 +3157,6 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             } catch (error) {
                 console.error('Error saving claim:', error);
             }
-        }) return;
-
-            const claimData = {
-                claimId: document.getElementById('claimId').value,
-                xaId: document.getElementById('xaId').value || null,
-                claimantName: document.getElementById('claimantName').value,
-                property: document.getElementById('property').value,
-                typeOfLoss: document.getElementById('typeOfLoss').value,
-                dateOfLoss: document.getElementById('dateOfLoss').value,
-                dateReported: document.getElementById('dateReported').value,
-                contactPhone: document.getElementById('contactPhone').value || null,
-                claimType: document.getElementById('claimType').value,
-                description: document.getElementById('claimDescription').value,
-                status: 'new',
-                firm: document.getElementById('claimFirm').value,
-                createdAt: new Date()
-            };
-
-            try {
-                await db.collection('users').doc(currentUser.uid).collection('claims').add(claimData);
-                await loadUserData();
-                closeModal('claimModal');
-                document.getElementById('claimForm').reset();
-            } catch (error) {
-                console.error('Error saving claim:', error);
-            }
         }
 
         function openClaimDetail(claimId) {

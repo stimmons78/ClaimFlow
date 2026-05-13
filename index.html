@@ -3005,13 +3005,21 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             const sortOrderEl = document.getElementById('sortOrder');
             if (!sortByEl || !sortOrderEl) return;
             if (sortByEl.value === col) {
-                // Toggle direction if same column
                 sortOrderEl.value = sortOrderEl.value === 'asc' ? 'desc' : 'asc';
             } else {
                 sortByEl.value = col;
                 sortOrderEl.value = 'asc';
             }
             filterClaims();
+        }
+
+        function buildSortHeader(col, label) {
+            const curSort = document.getElementById('sortBy')?.value;
+            const curOrder = document.getElementById('sortOrder')?.value;
+            const isActive = curSort === col;
+            const arrow = isActive ? (curOrder === 'asc' ? ' ↑' : ' ↓') : '';
+            const color = isActive ? '#6366f1' : '#64748b';
+            return '<th onclick="tableSortBy(\'' + col + '\')" style="padding:12px;text-align:left;font-weight:700;color:' + color + ';text-transform:uppercase;font-size:10px;letter-spacing:0.5px;cursor:pointer;user-select:none;white-space:nowrap;" onmouseover="this.style.color=\'#6366f1\'" onmouseout="this.style.color=\'' + color + '\'">' + label + arrow + '</th>';
         }
         
         function filterClaims() {
@@ -3169,17 +3177,16 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
                     <thead style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
                         <tr>
-                            ${bulkSelectMode ? '<th style="padding:12px;width:40px;"><input type="checkbox" id="tableSelectAll" onchange="toggleSelectAll(this)" style="width:15px;height:15px;accent-color:#6366f1;cursor:pointer;"></th>' : ''}
-                            ${['claimId','claimantName','property','typeOfLoss','firm','dateOfLoss','_nextInspection','claimType','status'].map((col, i) => {
-                                const labels = ['Claim ID','Claimant','Property','Type of Loss','Firm','DOL','Next Inspection','Type','Status'];
-                                const curSort = document.getElementById('sortBy')?.value;
-                                const curOrder = document.getElementById('sortOrder')?.value;
-                                const isActive = curSort === col;
-                                const arrow = isActive ? (curOrder === 'asc' ? ' ↑' : ' ↓') : '';
-                                return \`<th onclick="tableSortBy('${col}')" style="padding:12px;text-align:left;font-weight:700;color:${isActive?'#6366f1':'#64748b'};text-transform:uppercase;font-size:10px;letter-spacing:0.5px;cursor:pointer;user-select:none;white-space:nowrap;" onmouseover="this.style.color='#6366f1'" onmouseout="this.style.color='${isActive?'#6366f1':'#64748b'}'">
-                                    ${labels[i]}${arrow}
-                                </th>\`;
-                            }).join('')}
+                            ${bulkSelectMode ? '<th style="padding:12px;width:40px;"><input type=\"checkbox\" id=\"tableSelectAll\" onchange=\"toggleSelectAll(this)\" style=\"width:15px;height:15px;accent-color:#6366f1;cursor:pointer;\"></th>' : ''}
+                            ${buildSortHeader('claimId','Claim ID')}
+                            ${buildSortHeader('claimantName','Claimant')}
+                            ${buildSortHeader('property','Property')}
+                            ${buildSortHeader('typeOfLoss','Type of Loss')}
+                            ${buildSortHeader('firm','Firm')}
+                            ${buildSortHeader('dateOfLoss','DOL')}
+                            ${buildSortHeader('_nextInspection','Next Inspection')}
+                            ${buildSortHeader('claimType','Type')}
+                            ${buildSortHeader('status','Status')}
                         </tr>
                     </thead>
                     <tbody>

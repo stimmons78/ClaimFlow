@@ -3953,6 +3953,9 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 }
                 
                 await loadUserData();
+                renderClaimSchedule();
+                renderClaimTasks();
+                renderClaimReminders();
                 renderClaimDiary();
             } catch (error) {
                 console.error('Error updating status:', error);

@@ -4089,12 +4089,18 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             }).join('');
         }
         
+        // Toggle submission flags to prevent duplicates
+        let toggleScheduleSubmitting = false;
+        let toggleTaskSubmitting = false;
+        let toggleReminderSubmitting = false;
+
         async function toggleScheduleComplete(scheduleId, isCompleted) {
-            if (!currentUser) return;
+            if (!currentUser || toggleScheduleSubmitting) return;
             
             const schedule = allSchedules.find(s => s.id === scheduleId);
             if (!schedule) return;
-            
+
+            toggleScheduleSubmitting = true;
             try {
                 await db.collection('users').doc(currentUser.uid).collection('schedules').doc(scheduleId).update({
                     completed: isCompleted,
@@ -4120,6 +4126,8 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 updateOverdueCounts();
             } catch (error) {
                 console.error('Error toggling schedule:', error);
+            } finally {
+                toggleScheduleSubmitting = false;
             }
         }
         
@@ -4199,11 +4207,12 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
         }
         
         async function toggleTaskComplete(taskId, isCompleted) {
-            if (!currentUser) return;
+            if (!currentUser || toggleTaskSubmitting) return;
             
             const task = allTasks.find(t => t.id === taskId);
             if (!task) return;
-            
+
+            toggleTaskSubmitting = true;
             try {
                 await db.collection('users').doc(currentUser.uid).collection('tasks').doc(taskId).update({
                     completed: isCompleted,
@@ -4225,6 +4234,8 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 updateOverdueCounts();
             } catch (error) {
                 console.error('Error toggling task:', error);
+            } finally {
+                toggleTaskSubmitting = false;
             }
         }
 
@@ -4258,11 +4269,12 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
         }
         
         async function toggleReminderComplete(reminderId, isCompleted) {
-            if (!currentUser) return;
+            if (!currentUser || toggleReminderSubmitting) return;
             
             const reminder = allReminders.find(r => r.id === reminderId);
             if (!reminder) return;
-            
+
+            toggleReminderSubmitting = true;
             try {
                 await db.collection('users').doc(currentUser.uid).collection('reminders').doc(reminderId).update({
                     completed: isCompleted,
@@ -4284,6 +4296,8 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 updateOverdueCounts();
             } catch (error) {
                 console.error('Error toggling reminder:', error);
+            } finally {
+                toggleReminderSubmitting = false;
             }
         }
 

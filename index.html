@@ -3724,13 +3724,8 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
         
         function renderClaimsList() {
             updateFirmFilter(); // rebuild firm options, preserve any selection
-            // Restore last used view
-            const savedView = localStorage.getItem('claimsViewMode') || 'card';
-            if (savedView !== claimsViewMode) {
-                setClaimsView(savedView); // setClaimsView calls filterClaims internally
-            } else {
-                filterClaims();
-            }
+            // Always call setClaimsView so the correct container is visible
+            setClaimsView(claimsViewMode);
         }
 
         async function saveClaim(e) {
@@ -5844,7 +5839,13 @@ Click OK to confirm.`);
             
             const firmTotals = {};
             
-            allCommissions.forEach(c => {
+            // Dedup commissions — latest record per claim
+            const statsSeenIds = new Set();
+            const statsCommissions = allCommissions
+                .sort((a,b) => new Date(b.updatedAt?.toDate?.() || b.updatedAt || 0) - new Date(a.updatedAt?.toDate?.() || a.updatedAt || 0))
+                .filter(c => { if (statsSeenIds.has(c.claimId)) return false; statsSeenIds.add(c.claimId); return true; });
+
+            statsCommissions.forEach(c => {
                 const amount = parseFloat(c.actualAmount || c.expectedAmount || 0);
                 const status = c.paymentStatus || 'pending';
                 const claim = allClaims.find(cl => cl.id === c.claimId);
@@ -5952,10 +5953,17 @@ Click OK to confirm.`);
                 const weekClaims = [];
                 let weekTotal = 0;
                 
-                allCommissions.forEach(commission => {
-                    if (commission.paymentStatus === 'paid') return;
-                    if (!commission.expectedPaymentDate) return;
-                    
+                // De-dupe: keep only the most recent commission record per claim
+                const seenClaimIds = new Set();
+                const uniqueCommissions = allCommissions
+                    .filter(c => c.paymentStatus !== 'paid' && c.expectedPaymentDate)
+                    .sort((a, b) => new Date(b.updatedAt?.toDate?.() || b.updatedAt || b.createdAt?.toDate?.() || 0)
+                                  - new Date(a.updatedAt?.toDate?.() || a.updatedAt || a.createdAt?.toDate?.() || 0));
+
+                uniqueCommissions.forEach(commission => {
+                    if (seenClaimIds.has(commission.claimId)) return;
+                    seenClaimIds.add(commission.claimId);
+
                     const payDate = new Date(commission.expectedPaymentDate);
                     if (payDate >= weekStart && payDate <= weekEnd) {
                         const claim = allClaims.find(c => c.id === commission.claimId);

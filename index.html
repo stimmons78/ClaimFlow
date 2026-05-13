@@ -1709,14 +1709,100 @@
                         <input type="number" id="firmCutPercentage" placeholder="60" step="0.1" min="0" max="100">
                     </div>
                     <div class="form-group">
-                        <label>Payment Terms</label>
-                        <select id="firmPaymentTerms">
-                            <option value="15">Net 15</option>
-                            <option value="30" selected>Net 30</option>
-                            <option value="45">Net 45</option>
-                            <option value="60">Net 60</option>
-                            <option value="90">Net 90</option>
+                        <label>Pay Cycle Type</label>
+                        <select id="firmPayCycleType" onchange="updatePayCycleUI()">
+                            <option value="weekly">Weekly</option>
+                            <option value="biweekly">Bi-Weekly (Every 2 Weeks)</option>
+                            <option value="twicemonthly">Twice a Month</option>
+                            <option value="netdays">Net Days (simple)</option>
                         </select>
+                    </div>
+                </div>
+                <!-- Pay Cycle Builder -->
+                <div id="payCycleBuilder" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:14px;">
+                    <!-- Weekly / Bi-weekly -->
+                    <div id="payCycle_weekly">
+                        <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Weekly Pay Cycle</div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                            <div class="form-group" style="margin:0;">
+                                <label>Period Ends On</label>
+                                <select id="firmPeriodEndDay">
+                                    <option value="0">Sunday</option>
+                                    <option value="1" selected>Monday</option>
+                                    <option value="2">Tuesday</option>
+                                    <option value="3">Wednesday</option>
+                                    <option value="4">Thursday</option>
+                                    <option value="5">Friday</option>
+                                    <option value="6">Saturday</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label>Paid On</label>
+                                <select id="firmPayDay">
+                                    <option value="0">Sunday</option>
+                                    <option value="1">Monday</option>
+                                    <option value="2">Tuesday</option>
+                                    <option value="3" selected>Wednesday</option>
+                                    <option value="4">Thursday</option>
+                                    <option value="5">Friday</option>
+                                    <option value="6">Saturday</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="biweeklyRefRow" style="display:none;margin-top:10px;">
+                            <div class="form-group" style="margin:0;">
+                                <label>Reference Period-End Date <span style="font-size:10px;color:#94a3b8;font-weight:400;">(any known pay cutoff date for alignment)</span></label>
+                                <input type="date" id="firmBiweeklyRef">
+                            </div>
+                        </div>
+                        <div style="margin-top:8px;font-size:11px;color:#64748b;" id="payCyclePreview"></div>
+                    </div>
+                    <!-- Twice a Month -->
+                    <div id="payCycle_twicemonthly" style="display:none;">
+                        <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Twice-a-Month Pay Cycle</div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:8px;">
+                            <div class="form-group" style="margin:0;">
+                                <label style="font-size:11px;">Period 1 — Close by day</label>
+                                <input type="number" id="firmCutoff1" placeholder="15" min="1" max="31" value="15">
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label style="font-size:11px;">Paid on day</label>
+                                <input type="number" id="firmPayDay1" placeholder="25" min="1" max="31" value="25">
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label style="font-size:11px;">Same or next month?</label>
+                                <select id="firmPayNext1">
+                                    <option value="false">Same month</option>
+                                    <option value="true">Next month</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                            <div class="form-group" style="margin:0;">
+                                <label style="font-size:11px;">Period 2 — Close by day</label>
+                                <input type="number" id="firmCutoff2" placeholder="31" min="1" max="31" value="31">
+                                <div style="font-size:10px;color:#94a3b8;margin-top:2px;">Use 31 = last day of month</div>
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label style="font-size:11px;">Paid on day</label>
+                                <input type="number" id="firmPayDay2" placeholder="10" min="1" max="31" value="10">
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label style="font-size:11px;">Same or next month?</label>
+                                <select id="firmPayNext2">
+                                    <option value="false">Same month</option>
+                                    <option value="true" selected>Next month</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Net Days -->
+                    <div id="payCycle_netdays" style="display:none;">
+                        <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Net Days</div>
+                        <div class="form-group" style="margin:0;max-width:160px;">
+                            <label>Days after close</label>
+                            <input type="number" id="firmNetDays" placeholder="30" min="1" value="30">
+                        </div>
                     </div>
                 </div>
                 <div class="form-grid">
@@ -3138,10 +3224,11 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                     const firm = allFirms.find(f => f.name === claim.firm);
                     const existingCommission = allCommissions.find(c => c.claimId === claimId);
 
-                    if (firm && firm.paymentTerms) {
+                    if (firm) {
                         const closeDate = new Date();
-                        const expectedPaymentDate = new Date(closeDate);
-                        expectedPaymentDate.setDate(expectedPaymentDate.getDate() + firm.paymentTerms);
+                        const closeDateStr = closeDate.toISOString().split('T')[0];
+                        const expectedPayDateStr = calculateNextPayDate(closeDateStr, firm);
+                        const expectedPaymentDate = expectedPayDateStr ? new Date(expectedPayDateStr + 'T12:00:00') : null;
 
                         let expectedAmount = existingCommission?.expectedAmount;
                         if (!expectedAmount) {
@@ -3153,8 +3240,8 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                             claimId: claimId,
                             expectedAmount: expectedAmount || 0,
                             paymentStatus: 'pending',
-                            closeDate: closeDate.toISOString().split('T')[0],
-                            expectedPaymentDate: expectedPaymentDate.toISOString().split('T')[0],
+                            closeDate: closeDateStr,
+                            expectedPaymentDate: expectedPayDateStr || null,
                             updatedAt: new Date()
                         };
 
@@ -3165,9 +3252,10 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                             await db.collection('users').doc(currentUser.uid).collection('commissions').add(commissionData);
                         }
 
+                        const cycleLabel = formatPayCycle(firm);
                         await db.collection('users').doc(currentUser.uid).collection('diary').add({
                             claimId: claimId,
-                            text: `💰 File closed - Payment expected by ${expectedPaymentDate.toLocaleDateString()} (Net ${firm.paymentTerms} from ${firm.name})`,
+                            text: `💰 File closed - Payment expected by ${expectedPaymentDate ? expectedPaymentDate.toLocaleDateString() : 'TBD'} (${cycleLabel} — ${firm.name})`,
                             createdAt: new Date(),
                             auto: true
                         });
@@ -3514,11 +3602,11 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                     const firm = allFirms.find(f => f.name === oldClaim.firm);
                     const existingCommission = allCommissions.find(c => c.claimId === selectedClaimId);
 
-                    if (firm && firm.paymentTerms) {
+                    if (firm) {
                         const closeDate = new Date();
-                        const expectedPaymentDate = new Date(closeDate);
-                        expectedPaymentDate.setDate(expectedPaymentDate.getDate() + firm.paymentTerms);
-                        const expectedDateStr = expectedPaymentDate.toISOString().split('T')[0];
+                        const closeDateStr = closeDate.toISOString().split('T')[0];
+                        const expectedDateStr = calculateNextPayDate(closeDateStr, firm);
+                        const expectedPaymentDate = expectedDateStr ? new Date(expectedDateStr + 'T12:00:00') : null;
 
                         let expectedAmount = existingCommission?.expectedAmount;
                         if (!expectedAmount) {
@@ -3530,8 +3618,8 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                             claimId: selectedClaimId,
                             expectedAmount: expectedAmount || 0,
                             paymentStatus: 'pending',
-                            closeDate: closeDate.toISOString().split('T')[0],
-                            expectedPaymentDate: expectedDateStr,
+                            closeDate: closeDateStr,
+                            expectedPaymentDate: expectedDateStr || null,
                             updatedAt: new Date()
                         };
 
@@ -3542,9 +3630,10 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                             await db.collection('users').doc(currentUser.uid).collection('commissions').add(commissionData);
                         }
 
+                        const cycleLabel = formatPayCycle(firm);
                         await db.collection('users').doc(currentUser.uid).collection('diary').add({
                             claimId: selectedClaimId,
-                            text: `💰 File closed - Payment expected by ${expectedPaymentDate.toLocaleDateString()} (Net ${firm.paymentTerms} from ${firm.name})`,
+                            text: `💰 File closed - Payment expected by ${expectedPaymentDate ? expectedPaymentDate.toLocaleDateString() : 'TBD'} (${cycleLabel} — ${firm.name})`,
                             createdAt: new Date(),
                             auto: true
                         });
@@ -4532,6 +4621,7 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             document.getElementById('firmId').value = '';
             document.getElementById('firmModalTitle').textContent = 'Add Firm';
             tempCarriers = [];
+            updatePayCycleUI(); // show weekly section by default
 
             if (firmId) {
                 const firm = allFirms.find(f => f.id === firmId);
@@ -4541,7 +4631,7 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                     document.getElementById('firmName').value = firm.name || '';
                     document.getElementById('firmContact').value = firm.contact || '';
                     document.getElementById('firmCutPercentage').value = firm.cutPercentage !== undefined ? firm.cutPercentage : 60;
-                    document.getElementById('firmPaymentTerms').value = firm.paymentTerms || '30';
+                    loadPayCycleToForm(firm);
                     document.getElementById('firmInspectionSLA').value = firm.inspectionSLA || '';
                     document.getElementById('firmSubmitSLA').value = firm.submitSLA || '';
                     document.getElementById('firmNotes').value = firm.notes || '';
@@ -4733,7 +4823,7 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 name: document.getElementById('firmName').value,
                 contact: document.getElementById('firmContact').value,
                 cutPercentage: parseFloat(document.getElementById('firmCutPercentage').value) || 60,
-                paymentTerms: parseInt(document.getElementById('firmPaymentTerms').value) || 30,
+                payCycle: readPayCycleFromForm(),
                 inspectionSLA: parseInt(document.getElementById('firmInspectionSLA').value) || 0,
                 submitSLA: parseInt(document.getElementById('firmSubmitSLA').value) || 0,
                 notes: document.getElementById('firmNotes').value,
@@ -4805,8 +4895,8 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                                     <div style="font-size:18px;font-weight:700;color:#6366f1;">${cut}%</div>
                                 </div>
                                 <div>
-                                    <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Payment Terms</div>
-                                    <div style="font-size:14px;font-weight:600;color:#475569;">Net ${firm.paymentTerms||30}</div>
+                                    <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Pay Cycle</div>
+                                    <div style="font-size:12px;font-weight:600;color:#475569;">${formatPayCycle(firm)}</div>
                                 </div>
                                 <div>
                                     <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">SLA</div>
@@ -4830,6 +4920,173 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             `;
         }
         
+        // ============ PAY CYCLE ENGINE ============
+
+        const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+        function calculateNextPayDate(closeDateStr, firm) {
+            const payCycle = firm.payCycle;
+            // Fallback: legacy paymentTerms net days
+            if (!payCycle || !payCycle.type || payCycle.type === 'netdays') {
+                const netDays = payCycle?.netDays || firm.paymentTerms || 30;
+                const d = new Date(closeDateStr + 'T12:00:00');
+                d.setDate(d.getDate() + parseInt(netDays));
+                return d.toISOString().split('T')[0];
+            }
+
+            const closeDate = new Date(closeDateStr + 'T12:00:00');
+
+            if (payCycle.type === 'weekly' || payCycle.type === 'biweekly') {
+                const periodEndDay = parseInt(payCycle.periodEndDay); // 0=Sun
+                const payDayOfWeek = parseInt(payCycle.payDay);
+
+                // Find next periodEndDay >= closeDate
+                const closeDow = closeDate.getDay();
+                let daysToEnd = (periodEndDay - closeDow + 7) % 7;
+                let candidateEnd = new Date(closeDate);
+                candidateEnd.setDate(candidateEnd.getDate() + daysToEnd);
+
+                // For bi-weekly: check alignment against reference date
+                if (payCycle.type === 'biweekly' && payCycle.referenceDate) {
+                    const refDate = new Date(payCycle.referenceDate + 'T12:00:00');
+                    const daysDiff = Math.round((candidateEnd - refDate) / 86400000);
+                    if (daysDiff % 14 !== 0) {
+                        // Off-cycle, add one more week
+                        candidateEnd.setDate(candidateEnd.getDate() + 7);
+                    }
+                }
+
+                // Pay day is the next occurrence of payDayOfWeek AFTER the period end
+                const endDow = candidateEnd.getDay();
+                let daysToPayDay = (payDayOfWeek - endDow + 7) % 7;
+                if (daysToPayDay === 0) daysToPayDay = 7; // always AFTER period end
+                const payDate = new Date(candidateEnd);
+                payDate.setDate(payDate.getDate() + daysToPayDay);
+                return payDate.toISOString().split('T')[0];
+            }
+
+            if (payCycle.type === 'twicemonthly') {
+                const cutoff1 = parseInt(payCycle.period1CutoffDay) || 15;
+                const payDay1  = parseInt(payCycle.period1PayDay) || 25;
+                const payNext1 = payCycle.period1PayNextMonth === true || payCycle.period1PayNextMonth === 'true';
+                const cutoff2 = parseInt(payCycle.period2CutoffDay) || 31;
+                const payDay2  = parseInt(payCycle.period2PayDay) || 10;
+                const payNext2 = payCycle.period2PayNextMonth === true || payCycle.period2PayNextMonth === 'true';
+
+                const day = closeDate.getDate();
+                const month = closeDate.getMonth();
+                const year = closeDate.getFullYear();
+                const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+                const effectiveCutoff2 = cutoff2 >= 28 ? lastDayOfMonth : cutoff2;
+
+                let payDate;
+                if (day <= cutoff1) {
+                    payDate = new Date(year, payNext1 ? month + 1 : month, payDay1, 12, 0, 0);
+                } else if (day <= effectiveCutoff2) {
+                    payDate = new Date(year, payNext2 ? month + 1 : month, payDay2, 12, 0, 0);
+                } else {
+                    // Past second cutoff — rolls into next month's first period
+                    payDate = new Date(year, payNext1 ? month + 2 : month + 1, payDay1, 12, 0, 0);
+                }
+                return payDate.toISOString().split('T')[0];
+            }
+
+            return null;
+        }
+
+        function formatPayCycle(firm) {
+            const pc = firm.payCycle;
+            if (!pc || !pc.type || pc.type === 'netdays') {
+                const days = pc?.netDays || firm.paymentTerms || 30;
+                return `Net ${days} days`;
+            }
+            if (pc.type === 'weekly') {
+                return `Weekly: through ${DAY_NAMES[pc.periodEndDay] || '?'} → paid ${DAY_NAMES[pc.payDay] || '?'}`;
+            }
+            if (pc.type === 'biweekly') {
+                return `Bi-weekly: through ${DAY_NAMES[pc.periodEndDay] || '?'} → paid ${DAY_NAMES[pc.payDay] || '?'}`;
+            }
+            if (pc.type === 'twicemonthly') {
+                const c2 = parseInt(pc.period2CutoffDay) >= 28 ? 'EOM' : `${pc.period2CutoffDay}th`;
+                return `Twice/month: by ${pc.period1CutoffDay}th→${pc.period1PayDay}th, by ${c2}→${pc.period2PayDay}th`;
+            }
+            return 'Custom';
+        }
+
+        function updatePayCycleUI() {
+            const type = document.getElementById('firmPayCycleType')?.value;
+            if (!type) return;
+            const sections = ['weekly','twicemonthly','netdays'];
+            sections.forEach(s => {
+                const el = document.getElementById(`payCycle_${s}`);
+                if (el) el.style.display = 'none';
+            });
+            const biRef = document.getElementById('biweeklyRefRow');
+            if (type === 'weekly') {
+                document.getElementById('payCycle_weekly').style.display = 'block';
+                if (biRef) biRef.style.display = 'none';
+            } else if (type === 'biweekly') {
+                document.getElementById('payCycle_weekly').style.display = 'block';
+                if (biRef) biRef.style.display = 'block';
+            } else if (type === 'twicemonthly') {
+                document.getElementById('payCycle_twicemonthly').style.display = 'block';
+            } else if (type === 'netdays') {
+                document.getElementById('payCycle_netdays').style.display = 'block';
+            }
+        }
+
+        function readPayCycleFromForm() {
+            const type = document.getElementById('firmPayCycleType')?.value || 'netdays';
+            const pc = { type };
+            if (type === 'weekly' || type === 'biweekly') {
+                pc.periodEndDay = parseInt(document.getElementById('firmPeriodEndDay').value);
+                pc.payDay = parseInt(document.getElementById('firmPayDay').value);
+                if (type === 'biweekly') {
+                    pc.referenceDate = document.getElementById('firmBiweeklyRef').value || null;
+                }
+            } else if (type === 'twicemonthly') {
+                pc.period1CutoffDay = parseInt(document.getElementById('firmCutoff1').value) || 15;
+                pc.period1PayDay    = parseInt(document.getElementById('firmPayDay1').value) || 25;
+                pc.period1PayNextMonth = document.getElementById('firmPayNext1').value === 'true';
+                pc.period2CutoffDay = parseInt(document.getElementById('firmCutoff2').value) || 31;
+                pc.period2PayDay    = parseInt(document.getElementById('firmPayDay2').value) || 10;
+                pc.period2PayNextMonth = document.getElementById('firmPayNext2').value === 'true';
+            } else {
+                pc.netDays = parseInt(document.getElementById('firmNetDays').value) || 30;
+            }
+            return pc;
+        }
+
+        function loadPayCycleToForm(firm) {
+            const pc = firm.payCycle;
+            const type = pc?.type || 'netdays';
+            const typeEl = document.getElementById('firmPayCycleType');
+            if (typeEl) typeEl.value = type;
+            updatePayCycleUI();
+
+            if (type === 'weekly' || type === 'biweekly') {
+                const pEnd = document.getElementById('firmPeriodEndDay');
+                const pDay = document.getElementById('firmPayDay');
+                if (pEnd) pEnd.value = pc.periodEndDay !== undefined ? pc.periodEndDay : 1;
+                if (pDay) pDay.value = pc.payDay !== undefined ? pc.payDay : 3;
+                if (type === 'biweekly') {
+                    const ref = document.getElementById('firmBiweeklyRef');
+                    if (ref) ref.value = pc.referenceDate || '';
+                }
+            } else if (type === 'twicemonthly') {
+                const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+                set('firmCutoff1', pc.period1CutoffDay || 15);
+                set('firmPayDay1', pc.period1PayDay || 25);
+                set('firmPayNext1', pc.period1PayNextMonth ? 'true' : 'false');
+                set('firmCutoff2', pc.period2CutoffDay || 31);
+                set('firmPayDay2', pc.period2PayDay || 10);
+                set('firmPayNext2', pc.period2PayNextMonth !== false ? 'true' : 'false');
+            } else {
+                const nd = document.getElementById('firmNetDays');
+                if (nd) nd.value = pc?.netDays || firm.paymentTerms || 30;
+            }
+        }
+
         // ============ COMMISSION CALCULATION ENGINE ============
 
         function calculateExpectedCommission(claim, firm) {
@@ -5419,13 +5676,9 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             
             // Auto-calculate expected payment date FROM CLOSE DATE
             let expectedPaymentDate = existingCommission?.expectedPaymentDate;
-            if (!expectedPaymentDate && firm && firm.paymentTerms) {
-                // Priority: close date > existing close date in commission > today
-                const referenceDate = claim.closeDate ? new Date(claim.closeDate) : 
-                                       existingCommission?.closeDate ? new Date(existingCommission.closeDate) : 
-                                       new Date();
-                referenceDate.setDate(referenceDate.getDate() + firm.paymentTerms);
-                expectedPaymentDate = referenceDate.toISOString().split('T')[0];
+            if (!expectedPaymentDate && firm) {
+                const refDateStr = claim.closeDate || existingCommission?.closeDate || new Date().toISOString().split('T')[0];
+                expectedPaymentDate = calculateNextPayDate(refDateStr, firm);
             }
             
             // Build status info for the modal
@@ -5439,7 +5692,7 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             document.getElementById('commissionClaimId').value = claimId;
             document.getElementById('commissionClaimInfo').innerHTML = `
                 <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">${claim.claimId} - ${claim.claimantName}</div>
-                <div style="font-size: 12px; color: #64748b;">${claim.firm} • ${claim.claimType === 'cat' ? 'CAT Claim' : 'Daily Claim'}${firm ? ' • Net ' + firm.paymentTerms : ''}</div>
+                <div style="font-size: 12px; color: #64748b;">${claim.firm} • ${claim.claimType === 'cat' ? 'CAT Claim' : 'Daily Claim'}${firm ? ' • ' + formatPayCycle(firm) : ''}</div>
                 ${statusInfo}
             `;
             
@@ -5464,22 +5717,25 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             const claimId = document.getElementById('commissionClaimId').value;
             const claim = allClaims.find(c => c.id === claimId);
             if (!claim) return;
-            
+
             const firm = allFirms.find(f => f.name === claim.firm);
-            if (!firm || !firm.paymentTerms) {
-                alert('No firm payment terms found. Set up the firm in Firms section first.');
+            if (!firm) {
+                alert('Firm not found. Set up the firm in the Firms section first.');
                 return;
             }
-            
+
             const closeDate = document.getElementById('closeDateField').value;
             if (!closeDate) {
                 alert('Please set the File Close Date first.');
                 return;
             }
-            
-            const closeDateObj = new Date(closeDate);
-            closeDateObj.setDate(closeDateObj.getDate() + firm.paymentTerms);
-            document.getElementById('expectedPaymentDate').value = closeDateObj.toISOString().split('T')[0];
+
+            const newPayDate = calculateNextPayDate(closeDate, firm);
+            if (newPayDate) {
+                document.getElementById('expectedPaymentDate').value = newPayDate;
+            } else {
+                alert('Could not calculate pay date. Check firm pay cycle settings.');
+            }
         }
         
         async function saveCommission(e) {

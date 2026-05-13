@@ -1224,7 +1224,7 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
                             <h3 style="font-size: 16px; font-weight: 700; color: #0f172a;">All Claims <span id="claimsCount" style="font-size: 13px; color: #94a3b8; font-weight: 500;">(0)</span></h3>
                             <div style="display: flex; gap: 8px;">
-                                <button class="btn" id="viewCardBtn" onclick="setClaimsView('card')" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; border: none;">⊞ Cards</button>
+                                <button class="btn" id="viewCardBtn" onclick="setClaimsView('card')">⊞ Cards</button>
                                 <button class="btn" id="viewTableBtn" onclick="setClaimsView('table')">☰ Table</button>
                                 <button class="btn" id="viewKanbanBtn" onclick="setClaimsView('kanban')">⊟ Kanban</button>
                                 <button class="btn" id="viewMapBtn" onclick="setClaimsView('map')">🗺️ Map</button>
@@ -1265,20 +1265,38 @@
                                     <option value="claimantName">Claimant Name</option>
                                     <option value="dateOfLoss">Date of Loss</option>
                                     <option value="dateReported">Date Reported</option>
-                                    <option value="property">Property</option>
+                                    <option value="_nextInspection">Next Inspection</option>
+                                    <option value="property">Property/City</option>
                                     <option value="typeOfLoss">Type of Loss</option>
                                     <option value="firm">Firm</option>
                                     <option value="status">Status</option>
                                     <option value="claimType">Claim Type</option>
+                                    <option value="rcv">RCV Amount</option>
                                 </select>
                                 <select id="sortOrder" onchange="filterClaims()" style="padding: 6px 12px; flex: 0 0 auto;">
                                     <option value="desc">Newest First ↓</option>
                                     <option value="asc">Oldest First ↑</option>
                                 </select>
                                 <button class="btn" onclick="clearFilters()" style="padding: 6px 12px; margin-left: auto;">Clear Filters</button>
+                                <button class="btn" id="bulkSelectBtn" onclick="toggleBulkSelect()" style="padding: 6px 12px; background:#f1f5f9; color:#475569;">☑ Select</button>
+                                <button class="btn" id="deleteAllClaimsBtn" onclick="confirmDeleteAllClaims()" style="padding: 6px 12px; background:#fee2e2; color:#dc2626; border-color:#fca5a5;">🗑 Delete All</button>
                             </div>
                         </div>
                         
+                        <!-- Bulk Select Action Bar -->
+                        <div id="bulkActionBar" style="display:none; background:#fff; border:1px solid #6366f1; border-radius:10px; padding:12px 16px; margin-bottom:12px; display:none; align-items:center; justify-content:space-between;">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; cursor:pointer;">
+                                    <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)"> Select All
+                                </label>
+                                <span id="selectedCount" style="font-size:12px; color:#64748b;">0 selected</span>
+                            </div>
+                            <div style="display:flex; gap:8px;">
+                                <button class="btn" onclick="toggleBulkSelect()" style="padding:6px 12px;">Cancel</button>
+                                <button class="btn" id="deleteSelectedBtn" onclick="confirmDeleteSelected()" style="padding:6px 12px; background:#fee2e2; color:#dc2626; border-color:#fca5a5;" disabled>🗑 Delete Selected</button>
+                            </div>
+                        </div>
+
                         <!-- Card View -->
                         <div class="claims-grid" id="claimsList"></div>
                         
@@ -1670,6 +1688,8 @@
                         <label style="margin-bottom: 8px;">Claim Flags</label>
                         <div style="display: flex; gap: 16px; flex-wrap: wrap;">
                             <label style="display: flex; align-items: center; gap: 6px; font-weight: 400; cursor: pointer;"><input type="checkbox" id="editClaimIsDenial"> Denial</label>
+                            <label style="display: flex; align-items: center; gap: 6px; font-weight: 400; cursor: pointer;"><input type="checkbox" id="editClaimIsWithdrawn"> Withdrawn/Cancelled</label>
+                            <label style="display: flex; align-items: center; gap: 6px; font-weight: 400; cursor: pointer;"><input type="checkbox" id="editClaimIsSupplement"> Supplement (no insp)</label>
                             <label style="display: flex; align-items: center; gap: 6px; font-weight: 400; cursor: pointer;"><input type="checkbox" id="editClaimIsReinspection"> Reinspection</label>
                             <label style="display: flex; align-items: center; gap: 6px; font-weight: 400; cursor: pointer;"><input type="checkbox" id="editClaimIsTandE"> T&amp;E (Manual Billing)</label>
                         </div>
@@ -1872,26 +1892,39 @@
                     </div>
                 </div>
             </div>
-            <!-- Denial Fees -->
+            <!-- Flat Fees -->
             <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 14px;">
-                <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">Denial Fees (Flat $ — carrier pays firm this amount, you get your cut %)</div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px;">
-                    <div class="form-group" style="margin: 0;">
-                        <label style="font-size: 11px;">Res Daily ($)</label>
-                        <input type="number" id="denialResDaily" placeholder="354" step="0.01">
-                    </div>
-                    <div class="form-group" style="margin: 0;">
-                        <label style="font-size: 11px;">Comm Daily ($)</label>
-                        <input type="number" id="denialCommDaily" placeholder="390" step="0.01">
-                    </div>
-                    <div class="form-group" style="margin: 0;">
-                        <label style="font-size: 11px;">Res CAT ($)</label>
-                        <input type="number" id="denialResCat" placeholder="414" step="0.01">
-                    </div>
-                    <div class="form-group" style="margin: 0;">
-                        <label style="font-size: 11px;">Comm CAT ($)</label>
-                        <input type="number" id="denialCommCat" placeholder="456" step="0.01">
-                    </div>
+                <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Flat Fees — carrier pays firm this amount, you get your cut %</div>
+                <div style="display: grid; grid-template-columns: 160px 1fr 1fr 1fr 1fr; gap: 8px; align-items: center; margin-bottom: 6px;">
+                    <div style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase;"></div>
+                    <div style="font-size: 10px; font-weight: 700; color: #64748b; text-align:center;">Res Daily</div>
+                    <div style="font-size: 10px; font-weight: 700; color: #64748b; text-align:center;">Comm Daily</div>
+                    <div style="font-size: 10px; font-weight: 700; color: #64748b; text-align:center;">Res CAT</div>
+                    <div style="font-size: 10px; font-weight: 700; color: #64748b; text-align:center;">Comm CAT</div>
+                </div>
+                <!-- Denial row -->
+                <div style="display: grid; grid-template-columns: 160px 1fr 1fr 1fr 1fr; gap: 8px; align-items: center; margin-bottom: 8px;">
+                    <div style="font-size: 12px; font-weight: 600; color: #374151;">Denial</div>
+                    <input type="number" id="denialResDaily" placeholder="354" step="0.01" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit;">
+                    <input type="number" id="denialCommDaily" placeholder="390" step="0.01" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit;">
+                    <input type="number" id="denialResCat" placeholder="414" step="0.01" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit;">
+                    <input type="number" id="denialCommCat" placeholder="456" step="0.01" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit;">
+                </div>
+                <!-- Withdrawn/Cancelled row -->
+                <div style="display: grid; grid-template-columns: 160px 1fr 1fr 1fr 1fr; gap: 8px; align-items: center; margin-bottom: 8px;">
+                    <div style="font-size: 12px; font-weight: 600; color: #374151;">Withdrawn/Cancelled</div>
+                    <input type="number" id="withdrawnResDaily" placeholder="0" step="0.01" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit;">
+                    <input type="number" id="withdrawnCommDaily" placeholder="0" step="0.01" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit;">
+                    <input type="number" id="withdrawnResCat" placeholder="0" step="0.01" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit;">
+                    <input type="number" id="withdrawnCommCat" placeholder="0" step="0.01" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit;">
+                </div>
+                <!-- Supplement w/o Inspection row -->
+                <div style="display: grid; grid-template-columns: 160px 1fr 1fr 1fr 1fr; gap: 8px; align-items: center;">
+                    <div style="font-size: 12px; font-weight: 600; color: #374151;">Supplement (no insp)</div>
+                    <input type="number" id="supplementResDaily" placeholder="0" step="0.01" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit;">
+                    <input type="number" id="supplementCommDaily" placeholder="0" step="0.01" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit;">
+                    <input type="number" id="supplementResCat" placeholder="0" step="0.01" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit;">
+                    <input type="number" id="supplementCommCat" placeholder="0" step="0.01" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit;">
                 </div>
             </div>
             <!-- RCV Tier Schedule -->
@@ -2202,6 +2235,8 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                         <label style="margin-bottom: 8px;">Claim Flags</label>
                         <div style="display: flex; gap: 16px; flex-wrap: wrap;">
                             <label style="display: flex; align-items: center; gap: 6px; font-weight: 400; cursor: pointer;"><input type="checkbox" id="claimIsDenial"> Denial</label>
+                            <label style="display: flex; align-items: center; gap: 6px; font-weight: 400; cursor: pointer;"><input type="checkbox" id="claimIsWithdrawn"> Withdrawn/Cancelled</label>
+                            <label style="display: flex; align-items: center; gap: 6px; font-weight: 400; cursor: pointer;"><input type="checkbox" id="claimIsSupplement"> Supplement (no insp)</label>
                             <label style="display: flex; align-items: center; gap: 6px; font-weight: 400; cursor: pointer;"><input type="checkbox" id="claimIsReinspection"> Reinspection</label>
                             <label style="display: flex; align-items: center; gap: 6px; font-weight: 400; cursor: pointer;"><input type="checkbox" id="claimIsTandE"> T&amp;E (Manual Billing)</label>
                         </div>
@@ -2900,10 +2935,11 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             `).join('');
         }
 
-        let claimsViewMode = 'card'; // 'card', 'table', 'kanban', or 'map'
+        let claimsViewMode = localStorage.getItem('claimsViewMode') || 'card';
         
         function setClaimsView(mode) {
             claimsViewMode = mode;
+            localStorage.setItem('claimsViewMode', mode);
             const cardBtn = document.getElementById('viewCardBtn');
             const tableBtn = document.getElementById('viewTableBtn');
             const kanbanBtn = document.getElementById('viewKanbanBtn');
@@ -2963,6 +2999,20 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             document.getElementById('sortOrder').value = 'desc';
             filterClaims();
         }
+
+        function tableSortBy(col) {
+            const sortByEl = document.getElementById('sortBy');
+            const sortOrderEl = document.getElementById('sortOrder');
+            if (!sortByEl || !sortOrderEl) return;
+            if (sortByEl.value === col) {
+                // Toggle direction if same column
+                sortOrderEl.value = sortOrderEl.value === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortByEl.value = col;
+                sortOrderEl.value = 'asc';
+            }
+            filterClaims();
+        }
         
         function filterClaims() {
             const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
@@ -3006,8 +3056,12 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             
             // Sort
             filtered.sort((a, b) => {
-                let aVal = a[sortBy];
-                let bVal = b[sortBy];
+                let aVal = sortBy === '_nextInspection' 
+                    ? (allSchedules.filter(s => s.claimId === a.id && !s.completed && s.activity.toLowerCase().includes('inspection')).sort((x,y) => new Date(x.date) - new Date(y.date))[0]?.date || '9999')
+                    : a[sortBy];
+                let bVal = sortBy === '_nextInspection'
+                    ? (allSchedules.filter(s => s.claimId === b.id && !s.completed && s.activity.toLowerCase().includes('inspection')).sort((x,y) => new Date(x.date) - new Date(y.date))[0]?.date || '9999')
+                    : b[sortBy];
                 
                 // Handle dates
                 if (sortBy === 'createdAt' || sortBy === 'dateOfLoss' || sortBy === 'dateReported') {
@@ -3073,9 +3127,13 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             }
             
             container.innerHTML = claims.map(claim => `
-                <div class="claim-card" ondblclick="openClaimDetail('${claim.id}')">
+                <div class="claim-card" 
+                    style="${bulkSelectMode && selectedClaimIds.has(claim.id) ? 'border-color:#6366f1;background:#f5f3ff;' : ''}"
+                    ondblclick="${bulkSelectMode ? '' : `openClaimDetail('${claim.id}')`}"
+                    onclick="${bulkSelectMode ? `toggleClaimSelection('${claim.id}', !document.getElementById('cb_${claim.id}').checked); document.getElementById('cb_${claim.id}').checked=selectedClaimIds.has('${claim.id}');` : ''}">
                     <div style="display: flex; justify-content: space-between; align-items: start;">
-                        <div class="claim-id">${claim.claimId}</div>
+                        ${bulkSelectMode ? `<input type="checkbox" class="claim-select-cb" id="cb_${claim.id}" data-id="${claim.id}" ${selectedClaimIds.has(claim.id) ? 'checked' : ''} onchange="toggleClaimSelection('${claim.id}', this.checked)" onclick="event.stopPropagation()" style="width:16px;height:16px;cursor:pointer;accent-color:#6366f1;">` : ''}
+                        <div class="claim-id" style="${bulkSelectMode ? 'flex:1;margin-left:8px;' : ''}">${claim.claimId}</div>
                         <div style="display: flex; gap: 4px; align-items: center;">
                             ${getPlatformBadge(claim.platform)}
                             ${claim.claimType === 'cat' ? '<span style="background: linear-gradient(135deg, #fbbf24, #f59e0b); color: white; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: 700;">CAT</span>' : ''}
@@ -3111,20 +3169,23 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
                     <thead style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
                         <tr>
-                            <th style="padding: 12px; text-align: left; font-weight: 700; color: #64748b; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Claim ID</th>
-                            <th style="padding: 12px; text-align: left; font-weight: 700; color: #64748b; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Claimant</th>
-                            <th style="padding: 12px; text-align: left; font-weight: 700; color: #64748b; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Property</th>
-                            <th style="padding: 12px; text-align: left; font-weight: 700; color: #64748b; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Type of Loss</th>
-                            <th style="padding: 12px; text-align: left; font-weight: 700; color: #64748b; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Firm</th>
-                            <th style="padding: 12px; text-align: left; font-weight: 700; color: #64748b; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">DOL</th>
-                            <th style="padding: 12px; text-align: left; font-weight: 700; color: #64748b; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Next Inspection</th>
-                            <th style="padding: 12px; text-align: left; font-weight: 700; color: #64748b; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Type</th>
-                            <th style="padding: 12px; text-align: left; font-weight: 700; color: #64748b; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Status</th>
+                            ${bulkSelectMode ? '<th style="padding:12px;width:40px;"><input type="checkbox" id="tableSelectAll" onchange="toggleSelectAll(this)" style="width:15px;height:15px;accent-color:#6366f1;cursor:pointer;"></th>' : ''}
+                            ${['claimId','claimantName','property','typeOfLoss','firm','dateOfLoss','_nextInspection','claimType','status'].map((col, i) => {
+                                const labels = ['Claim ID','Claimant','Property','Type of Loss','Firm','DOL','Next Inspection','Type','Status'];
+                                const curSort = document.getElementById('sortBy')?.value;
+                                const curOrder = document.getElementById('sortOrder')?.value;
+                                const isActive = curSort === col;
+                                const arrow = isActive ? (curOrder === 'asc' ? ' ↑' : ' ↓') : '';
+                                return \`<th onclick="tableSortBy('${col}')" style="padding:12px;text-align:left;font-weight:700;color:${isActive?'#6366f1':'#64748b'};text-transform:uppercase;font-size:10px;letter-spacing:0.5px;cursor:pointer;user-select:none;white-space:nowrap;" onmouseover="this.style.color='#6366f1'" onmouseout="this.style.color='${isActive?'#6366f1':'#64748b'}'">
+                                    ${labels[i]}${arrow}
+                                </th>\`;
+                            }).join('')}
                         </tr>
                     </thead>
                     <tbody>
                         ${claimsWithInspection.map(claim => `
-                            <tr onclick="openClaimDetail('${claim.id}')" style="border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                            <tr onclick="${bulkSelectMode ? `toggleClaimSelection('${claim.id}', !document.getElementById('tbl_${claim.id}').checked); document.getElementById('tbl_${claim.id}').checked=selectedClaimIds.has('${claim.id}');` : `openClaimDetail('${claim.id}')`}" style="border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background 0.2s; ${bulkSelectMode && selectedClaimIds.has(claim.id) ? 'background:#f5f3ff;' : ''}" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='${bulkSelectMode && selectedClaimIds.has(claim.id) ? '#f5f3ff' : 'transparent'}'">
+                                ${bulkSelectMode ? `<td style="padding:12px;"><input type="checkbox" class="claim-select-cb" id="tbl_${claim.id}" data-id="${claim.id}" ${selectedClaimIds.has(claim.id) ? 'checked' : ''} onchange="toggleClaimSelection('${claim.id}', this.checked)" onclick="event.stopPropagation()" style="width:15px;height:15px;accent-color:#6366f1;cursor:pointer;"></td>` : ''}
                                 <td style="padding: 12px; font-weight: 600; color: #0f172a;">${claim.claimId}</td>
                                 <td style="padding: 12px; color: #334155;">${claim.claimantName}</td>
                                 <td style="padding: 12px; color: #64748b;">${claim.property}</td>
@@ -3166,9 +3227,10 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                             </div>
                             <div style="display: flex; flex-direction: column; gap: 10px;">
                                 ${col.claims.length === 0 ? '<div style="font-size: 12px; color: #94a3b8; text-align: center; padding: 24px; font-style: italic;">No claims</div>' : col.claims.map(c => `
-                                    <div draggable="true" ondragstart="handleKanbanDragStart(event, '${c.id}')" onclick="openClaimDetail('${c.id}')" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.boxShadow='0 8px 20px rgba(99, 102, 241, 0.12)'; this.style.borderColor='#6366f1'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow=''; this.style.borderColor='#e2e8f0'; this.style.transform=''">
+                                    <div draggable="${bulkSelectMode ? 'false' : 'true'}" ondragstart="if(!bulkSelectMode)handleKanbanDragStart(event, '${c.id}')" onclick="bulkSelectMode ? (toggleClaimSelection('${c.id}', !selectedClaimIds.has('${c.id}')), filterClaims()) : openClaimDetail('${c.id}')" style="background: ${bulkSelectMode && selectedClaimIds.has(c.id) ? '#f5f3ff' : '#fff'}; border: 1px solid ${bulkSelectMode && selectedClaimIds.has(c.id) ? '#6366f1' : '#e2e8f0'}; border-radius: 10px; padding: 12px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.boxShadow='0 8px 20px rgba(99, 102, 241, 0.12)'" onmouseout="this.style.boxShadow=''">
                                         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 6px;">
-                                            <div style="font-weight: 700; font-size: 13px; color: #0f172a;">${c.claimId}</div>
+                                            ${bulkSelectMode ? `<input type="checkbox" class="claim-select-cb" data-id="${c.id}" ${selectedClaimIds.has(c.id) ? 'checked' : ''} onchange="toggleClaimSelection('${c.id}', this.checked); filterClaims();" onclick="event.stopPropagation()" style="width:15px;height:15px;accent-color:#6366f1;cursor:pointer;margin-right:6px;">` : ''}
+                                            <div style="font-weight: 700; font-size: 13px; color: #0f172a; flex:1;">${c.claimId}</div>
                                             ${c.claimType === 'cat' ? '<span style="background: linear-gradient(135deg, #fbbf24, #f59e0b); color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 700;">CAT</span>' : ''}
                                         </div>
                                         <div style="font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">${c.claimantName}</div>
@@ -3417,7 +3479,13 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
         
         function renderClaimsList() {
             updateFirmFilter();
-            filterClaims();
+            // Restore last used view
+            const savedView = localStorage.getItem('claimsViewMode') || 'card';
+            if (savedView !== claimsViewMode) {
+                setClaimsView(savedView);
+            } else {
+                filterClaims();
+            }
         }
 
         async function saveClaim(e) {
@@ -3441,6 +3509,8 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 carrier: document.getElementById('claimCarrier').value || null,
                 miles: parseFloat(document.getElementById('claimMiles').value) || 0,
                 isDenial: document.getElementById('claimIsDenial').checked,
+                isWithdrawn: document.getElementById('claimIsWithdrawn').checked,
+                isSupplement: document.getElementById('claimIsSupplement').checked,
                 isReinspection: document.getElementById('claimIsReinspection').checked,
                 isTandE: document.getElementById('claimIsTandE').checked,
                 description: document.getElementById('claimDescription').value,
@@ -3534,6 +3604,8 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             if (flagsRow) {
                 const flags = [];
                 if (claim.isDenial) flags.push('<span style="background:#fee2e2;color:#dc2626;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;">DENIAL</span>');
+                if (claim.isWithdrawn) flags.push('<span style="background:#fce7f3;color:#be185d;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;">WITHDRAWN</span>');
+                if (claim.isSupplement) flags.push('<span style="background:#e0f2fe;color:#0369a1;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;">SUPPLEMENT</span>');
                 if (claim.isReinspection) flags.push('<span style="background:#fef3c7;color:#d97706;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;">REINSPECTION</span>');
                 if (claim.isTandE) flags.push('<span style="background:#ede9fe;color:#7c3aed;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;">T&E</span>');
                 if (claim.miles > 0) flags.push(`<span style="background:#e0f2fe;color:#0369a1;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;">${claim.miles} mi</span>`);
@@ -4520,6 +4592,8 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             document.getElementById('editClaimRcv').value = claim.rcv || '';
             document.getElementById('editClaimMiles').value = claim.miles || '';
             document.getElementById('editClaimIsDenial').checked = !!claim.isDenial;
+            document.getElementById('editClaimIsWithdrawn').checked = !!claim.isWithdrawn;
+            document.getElementById('editClaimIsSupplement').checked = !!claim.isSupplement;
             document.getElementById('editClaimIsReinspection').checked = !!claim.isReinspection;
             document.getElementById('editClaimIsTandE').checked = !!claim.isTandE;
 
@@ -4563,6 +4637,8 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 carrier: document.getElementById('editClaimCarrier').value || null,
                 miles: parseFloat(document.getElementById('editClaimMiles').value) || 0,
                 isDenial: document.getElementById('editClaimIsDenial').checked,
+                isWithdrawn: document.getElementById('editClaimIsWithdrawn').checked,
+                isSupplement: document.getElementById('editClaimIsSupplement').checked,
                 isReinspection: document.getElementById('editClaimIsReinspection').checked,
                 isTandE: document.getElementById('editClaimIsTandE').checked,
                 description: document.getElementById('editClaimDescription').value,
@@ -4677,10 +4753,18 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 const c = tempCarriers[editIndex];
                 document.getElementById('carrierModalTitle').textContent = 'Edit Carrier';
                 document.getElementById('carrierName').value = c.name || '';
-                document.getElementById('denialResDaily').value = c.denialFees?.resDaily || '';
-                document.getElementById('denialCommDaily').value = c.denialFees?.commDaily || '';
-                document.getElementById('denialResCat').value = c.denialFees?.resCat || '';
-                document.getElementById('denialCommCat').value = c.denialFees?.commCat || '';
+                document.getElementById('denialResDaily').value = c.flatFees?.denial?.resDaily ?? c.denialFees?.resDaily ?? '';
+                document.getElementById('denialCommDaily').value = c.flatFees?.denial?.commDaily ?? c.denialFees?.commDaily ?? '';
+                document.getElementById('denialResCat').value = c.flatFees?.denial?.resCat ?? c.denialFees?.resCat ?? '';
+                document.getElementById('denialCommCat').value = c.flatFees?.denial?.commCat ?? c.denialFees?.commCat ?? '';
+                document.getElementById('withdrawnResDaily').value = c.flatFees?.withdrawn?.resDaily || '';
+                document.getElementById('withdrawnCommDaily').value = c.flatFees?.withdrawn?.commDaily || '';
+                document.getElementById('withdrawnResCat').value = c.flatFees?.withdrawn?.resCat || '';
+                document.getElementById('withdrawnCommCat').value = c.flatFees?.withdrawn?.commCat || '';
+                document.getElementById('supplementResDaily').value = c.flatFees?.supplement?.resDaily || '';
+                document.getElementById('supplementCommDaily').value = c.flatFees?.supplement?.commDaily || '';
+                document.getElementById('supplementResCat').value = c.flatFees?.supplement?.resCat || '';
+                document.getElementById('supplementCommCat').value = c.flatFees?.supplement?.commCat || '';
                 document.getElementById('mileageFreeFirst').value = c.mileageFreeFirst || '';
                 document.getElementById('mileageRatePerMile').value = c.mileageRatePerMile || '';
                 document.getElementById('reinspectionRate').value = c.reinspectionRate || '';
@@ -4692,6 +4776,14 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 document.getElementById('denialCommDaily').value = '';
                 document.getElementById('denialResCat').value = '';
                 document.getElementById('denialCommCat').value = '';
+                document.getElementById('withdrawnResDaily').value = '';
+                document.getElementById('withdrawnCommDaily').value = '';
+                document.getElementById('withdrawnResCat').value = '';
+                document.getElementById('withdrawnCommCat').value = '';
+                document.getElementById('supplementResDaily').value = '';
+                document.getElementById('supplementCommDaily').value = '';
+                document.getElementById('supplementResCat').value = '';
+                document.getElementById('supplementCommCat').value = '';
                 document.getElementById('mileageFreeFirst').value = '50';
                 document.getElementById('mileageRatePerMile').value = '1.80';
                 document.getElementById('reinspectionRate').value = '175';
@@ -4791,6 +4883,27 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             const carrierData = {
                 id: Date.now().toString(),
                 name,
+                flatFees: {
+                    denial: {
+                        resDaily: parseFloat(document.getElementById('denialResDaily').value) || 0,
+                        commDaily: parseFloat(document.getElementById('denialCommDaily').value) || 0,
+                        resCat: parseFloat(document.getElementById('denialResCat').value) || 0,
+                        commCat: parseFloat(document.getElementById('denialCommCat').value) || 0,
+                    },
+                    withdrawn: {
+                        resDaily: parseFloat(document.getElementById('withdrawnResDaily').value) || 0,
+                        commDaily: parseFloat(document.getElementById('withdrawnCommDaily').value) || 0,
+                        resCat: parseFloat(document.getElementById('withdrawnResCat').value) || 0,
+                        commCat: parseFloat(document.getElementById('withdrawnCommCat').value) || 0,
+                    },
+                    supplement: {
+                        resDaily: parseFloat(document.getElementById('supplementResDaily').value) || 0,
+                        commDaily: parseFloat(document.getElementById('supplementCommDaily').value) || 0,
+                        resCat: parseFloat(document.getElementById('supplementResCat').value) || 0,
+                        commCat: parseFloat(document.getElementById('supplementCommCat').value) || 0,
+                    },
+                },
+                // Legacy compat
                 denialFees: {
                     resDaily: parseFloat(document.getElementById('denialResDaily').value) || 0,
                     commDaily: parseFloat(document.getElementById('denialCommDaily').value) || 0,
@@ -4920,6 +5033,143 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             `;
         }
         
+        // ============ BULK DELETE ============
+
+        let bulkSelectMode = false;
+        let selectedClaimIds = new Set();
+
+        function toggleBulkSelect() {
+            bulkSelectMode = !bulkSelectMode;
+            selectedClaimIds.clear();
+            const bar = document.getElementById('bulkActionBar');
+            const btn = document.getElementById('bulkSelectBtn');
+            if (bar) bar.style.display = bulkSelectMode ? 'flex' : 'none';
+            if (btn) {
+                btn.style.background = bulkSelectMode ? '#6366f1' : '#f1f5f9';
+                btn.style.color = bulkSelectMode ? 'white' : '#475569';
+            }
+            updateSelectedCount();
+            filterClaims(); // re-render cards with/without checkboxes
+        }
+
+        function updateSelectedCount() {
+            const el = document.getElementById('selectedCount');
+            const btn = document.getElementById('deleteSelectedBtn');
+            if (el) el.textContent = `${selectedClaimIds.size} selected`;
+            if (btn) btn.disabled = selectedClaimIds.size === 0;
+        }
+
+        function toggleSelectAll(checkbox) {
+            const allVisible = document.querySelectorAll('.claim-select-cb');
+            allVisible.forEach(cb => {
+                cb.checked = checkbox.checked;
+                if (checkbox.checked) selectedClaimIds.add(cb.dataset.id);
+                else selectedClaimIds.delete(cb.dataset.id);
+            });
+            updateSelectedCount();
+        }
+
+        function toggleClaimSelection(id, checked) {
+            if (checked) selectedClaimIds.add(id);
+            else selectedClaimIds.delete(id);
+            updateSelectedCount();
+            // Update select-all checkbox state
+            const allCbs = document.querySelectorAll('.claim-select-cb');
+            const allChecked = allCbs.length > 0 && [...allCbs].every(cb => cb.checked);
+            const selectAll = document.getElementById('selectAllCheckbox');
+            if (selectAll) selectAll.checked = allChecked;
+        }
+
+        async function confirmDeleteSelected() {
+            if (selectedClaimIds.size === 0) return;
+            if (!confirm(`⚠️ Delete ${selectedClaimIds.size} selected claim(s)?
+
+This will also delete all schedules, tasks, reminders, diary entries, and commissions for these claims.
+
+This cannot be undone.`)) return;
+            await bulkDeleteClaims([...selectedClaimIds]);
+        }
+
+        async function confirmDeleteAllClaims() {
+            const count = allClaims.length;
+            if (count === 0) { alert('No claims to delete.'); return; }
+            const confirm1 = confirm(`⚠️ Delete ALL ${count} claims?
+
+This will also delete ALL schedules, tasks, reminders, diary entries, and commissions.
+
+This CANNOT be undone.`);
+            if (!confirm1) return;
+            const confirm2 = confirm(`🚨 FINAL WARNING: You are about to permanently delete ${count} claims and all related data.
+
+Click OK to confirm.`);
+            if (!confirm2) return;
+            await bulkDeleteClaims(allClaims.map(c => c.id));
+        }
+
+        async function bulkDeleteClaims(ids) {
+            if (!currentUser || ids.length === 0) return;
+            const uid = currentUser.uid;
+            const collectionsToClean = ['schedules','tasks','reminders','diary','commissions'];
+
+            try {
+                // Show progress
+                const progressMsg = document.createElement('div');
+                progressMsg.id = 'deleteProgress';
+                progressMsg.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#0f172a;color:white;padding:20px 32px;border-radius:12px;font-size:14px;font-weight:600;z-index:9999;';
+                progressMsg.textContent = `Deleting ${ids.length} claims...`;
+                document.body.appendChild(progressMsg);
+
+                const idSet = new Set(ids);
+                const batch = db.batch();
+                let opCount = 0;
+
+                // Delete claim documents
+                for (const id of ids) {
+                    batch.delete(db.collection('users').doc(uid).collection('claims').doc(id));
+                    opCount++;
+                    // Firestore batch limit is 500
+                    if (opCount >= 490) {
+                        await batch.commit();
+                        opCount = 0;
+                    }
+                }
+
+                // Delete related records
+                for (const col of collectionsToClean) {
+                    const snap = await db.collection('users').doc(uid).collection(col).get();
+                    for (const doc of snap.docs) {
+                        if (idSet.has(doc.data().claimId)) {
+                            batch.delete(doc.ref);
+                            opCount++;
+                            if (opCount >= 490) {
+                                await batch.commit();
+                                opCount = 0;
+                            }
+                        }
+                    }
+                }
+
+                if (opCount > 0) await batch.commit();
+
+                document.getElementById('deleteProgress')?.remove();
+                selectedClaimIds.clear();
+                bulkSelectMode = false;
+                const bar = document.getElementById('bulkActionBar');
+                const btn = document.getElementById('bulkSelectBtn');
+                if (bar) bar.style.display = 'none';
+                if (btn) { btn.style.background = '#f1f5f9'; btn.style.color = '#475569'; }
+
+                await loadUserData();
+                filterClaims();
+                updateStats();
+
+            } catch (error) {
+                document.getElementById('deleteProgress')?.remove();
+                console.error('Bulk delete error:', error);
+                alert('Error deleting claims: ' + error.message);
+            }
+        }
+
         // ============ PAY CYCLE ENGINE ============
 
         const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -5118,10 +5368,20 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             const cutDisplay = `${firm.cutPercentage || 60}%`;
 
             if (claim.isDenial) {
-                const denialFee = carrier.denialFees?.[scheduleKey] || 0;
+                const denialFee = carrier.flatFees?.denial?.[scheduleKey] ?? carrier.denialFees?.[scheduleKey] ?? 0;
                 const commission = denialFee * cutPct;
                 total += commission;
                 breakdownLines.push(`Denial fee: $${denialFee} × ${cutDisplay} = $${commission.toFixed(2)}`);
+            } else if (claim.isWithdrawn) {
+                const withdrawnFee = carrier.flatFees?.withdrawn?.[scheduleKey] || 0;
+                const commission = withdrawnFee * cutPct;
+                total += commission;
+                breakdownLines.push(`Withdrawn/Cancelled fee: $${withdrawnFee} × ${cutDisplay} = $${commission.toFixed(2)}`);
+            } else if (claim.isSupplement) {
+                const supplementFee = carrier.flatFees?.supplement?.[scheduleKey] || 0;
+                const commission = supplementFee * cutPct;
+                total += commission;
+                breakdownLines.push(`Supplement (no insp) fee: $${supplementFee} × ${cutDisplay} = $${commission.toFixed(2)}`);
             } else if (claim.isTandE) {
                 isTandE = true;
                 breakdownLines.push('T&E — Manual billing required');

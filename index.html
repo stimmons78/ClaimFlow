@@ -4067,6 +4067,11 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             const claimSchedules = allSchedules.filter(s => s.claimId === selectedClaimId).sort((a, b) => new Date(a.date + 'T' + (a.time || '00:00')) - new Date(b.date + 'T' + (b.time || '00:00')));
             const container = document.getElementById('claimScheduleList');
             
+            if (!container) {
+                console.error('Schedule container not found');
+                return;
+            }
+            
             if (claimSchedules.length === 0) {
                 container.innerHTML = '<div class="empty-section">No scheduled items</div>';
                 return;
@@ -4184,6 +4189,11 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             const claimTasks = allTasks.filter(t => t.claimId === selectedClaimId).sort((a, b) => new Date(a.dueDate || '9999') - new Date(b.dueDate || '9999'));
             const container = document.getElementById('taskList');
             
+            if (!container) {
+                console.error('Task container not found');
+                return;
+            }
+            
             if (claimTasks.length === 0) {
                 container.innerHTML = '<div class="empty-section">No tasks</div>';
                 return;
@@ -4245,6 +4255,11 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
         function renderClaimReminders() {
             const claimReminders = allReminders.filter(r => r.claimId === selectedClaimId).sort((a, b) => new Date(a.dueDateTime) - new Date(b.dueDateTime));
             const container = document.getElementById('reminderList');
+            
+            if (!container) {
+                console.error('Reminder container not found');
+                return;
+            }
             
             if (claimReminders.length === 0) {
                 container.innerHTML = '<div class="empty-section">No reminders</div>';

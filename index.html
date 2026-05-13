@@ -1617,7 +1617,7 @@
                                     <textarea id="diaryText" placeholder="Add diary entry..."></textarea>
                                 </div>
                                 <div class="input-row" style="justify-content: flex-end;">
-                                    <button onclick="addDiary()" style="width: auto;">Add Entry</button>
+                                    <button type="button" onclick="addDiary()" style="width: auto;">Add Entry</button>
                                 </div>
                                 <div id="diaryEntryList" style="margin-top: 10px;"></div>
                             </div>
@@ -4034,12 +4034,16 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             }
         }
 
+        // Diary submission flag
+        let diarySubmitting = false;
+
         async function addDiary() {
-            if (!selectedClaimId || !currentUser) return;
+            if (!selectedClaimId || !currentUser || diarySubmitting) return;
             const text = document.getElementById('diaryText').value;
 
             if (!text) return;
 
+            diarySubmitting = true;
             try {
                 await db.collection('users').doc(currentUser.uid).collection('diary').add({
                     claimId: selectedClaimId,
@@ -4051,6 +4055,8 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 document.getElementById('diaryText').value = '';
             } catch (error) {
                 console.error('Error adding diary entry:', error);
+            } finally {
+                diarySubmitting = false;
             }
         }
 

@@ -590,6 +590,10 @@
             background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); 
             color: #065f46;
         }
+        .status-inspected {
+            background: linear-gradient(135deg, #bae6fd 0%, #7dd3fc 100%);
+            color: #0c4a6e;
+        }
         
         /* DETAIL PANEL */
         .detail-header { 
@@ -1239,6 +1243,7 @@
                                     <option value="">All Statuses</option>
                                     <option value="new">New</option>
                                     <option value="in-progress">In Progress</option>
+                                    <option value="inspected">Inspected</option>
                                     <option value="in-qa">In QA</option>
                                     <option value="closed">Closed</option>
                                 </select>
@@ -1513,6 +1518,7 @@
                                     <select id="claimStatusSelect" onchange="updateClaimStatus()" style="padding: 6px; font-size: 12px; border: 1px solid #ddd; border-radius: 6px;">
                                         <option value="new">New</option>
                                         <option value="in-progress">In Progress</option>
+                                        <option value="inspected">Inspected</option>
                                         <option value="in-qa">In QA</option>
                                         <option value="closed">Closed</option>
                                     </select>
@@ -1593,7 +1599,7 @@
             <form id="editClaimForm">
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>Claim ID</label>
+                        <label>Claim Number <span style="color:#ef4444;">*</span></label>
                         <input type="text" id="editClaimId" required>
                     </div>
                     <div class="form-group">
@@ -1603,12 +1609,14 @@
                 </div>
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>Claimant Name</label>
+                        <label>Claimant Name <span style="color:#ef4444;">*</span></label>
                         <input type="text" id="editClaimantName" required>
                     </div>
                     <div class="form-group">
-                        <label>Firm/Dataset</label>
-                        <input type="text" id="editClaimFirm">
+                        <label>Firm <span style="color:#ef4444;">*</span></label>
+                        <select id="editClaimFirm" onchange="populateCarrierDropdown('editClaimCarrier', this.options[this.selectedIndex].text, '')">
+                            <option value="">— select firm —</option>
+                        </select>
                     </div>
                 </div>
                 <div class="form-grid">
@@ -1958,7 +1966,11 @@
                 <div class="form-grid">
                     <div class="form-group">
                         <label>Expected Amount ($)</label>
-                        <input type="number" id="expectedCommission" step="0.01" placeholder="400.00">
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <input type="number" id="expectedCommission" step="0.01" placeholder="0.00" style="flex:1;">
+                            <button type="button" onclick="autoCalcCommission()" style="padding:6px 10px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;font-weight:600;color:#475569;cursor:pointer;white-space:nowrap;font-family:inherit;">⟳ Auto-Calc</button>
+                        </div>
+                        <div id="commissionBreakdown" style="font-size:11px;color:#64748b;margin-top:4px;font-style:italic;line-height:1.5;"></div>
                     </div>
                     <div class="form-group">
                         <label>Actual Amount ($)</label>
@@ -2130,7 +2142,7 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>Claim ID</label>
+                        <label>Claim Number <span style="color:#ef4444;">*</span></label>
                         <input type="text" id="claimId" placeholder="2035968" required>
                     </div>
                     <div class="form-group" id="xaIdGroup">
@@ -2140,12 +2152,14 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 </div>
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>Claimant Name</label>
+                        <label>Claimant Name <span style="color:#ef4444;">*</span></label>
                         <input type="text" id="claimantName" required>
                     </div>
                     <div class="form-group">
-                        <label>Firm (Insurance Company)</label>
-                        <input type="text" id="claimFirm" placeholder="CCG - General Dataset">
+                        <label>Firm <span style="color:#ef4444;">*</span></label>
+                        <select id="claimFirm" onchange="populateCarrierDropdown('claimCarrier', this.options[this.selectedIndex].text, '')">
+                            <option value="">— select firm —</option>
+                        </select>
                     </div>
                 </div>
                 <div class="form-grid" id="managingFirmGroup" style="display: none;">
@@ -2160,11 +2174,11 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 </div>
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>Property/Location</label>
+                        <label>Property/Location <span style="color:#ef4444;">*</span></label>
                         <input type="text" id="property" required>
                     </div>
                     <div class="form-group">
-                        <label>Type of Loss</label>
+                        <label>Type of Loss <span style="color:#ef4444;">*</span></label>
                         <select id="typeOfLoss" required>
                             <option>Water Damage</option>
                             <option>Fire</option>
@@ -2419,16 +2433,17 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 document.getElementById('claimForm').reset();
                 document.getElementById('dateReported').valueAsDate = new Date();
                 document.getElementById('dateOfLoss').valueAsDate = new Date();
+                populateFirmDropdown('claimFirm', '');
                 document.getElementById('claimCarrier').innerHTML = '<option value="">— select firm first —</option>';
                 openModal('claimModal');
             });
 
             // Auto-populate carrier dropdown when firm changes in new claim modal
-            document.getElementById('claimFirm').addEventListener('input', function() {
+            document.getElementById('claimFirm').addEventListener('change', function() {
                 populateCarrierDropdown('claimCarrier', this.value, '');
             });
             // Auto-populate carrier when firm changes in edit modal
-            document.getElementById('editClaimFirm').addEventListener('input', function() {
+            document.getElementById('editClaimFirm').addEventListener('change', function() {
                 populateCarrierDropdown('editClaimCarrier', this.value, '');
             });
             
@@ -3218,6 +3233,7 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             const columns = {
                 'new': { title: 'New', color: '#3b82f6', bgColor: '#dbeafe', claims: [] },
                 'in-progress': { title: 'In Progress', color: '#f59e0b', bgColor: '#fef3c7', claims: [] },
+                'inspected': { title: 'Inspected', color: '#0284c7', bgColor: '#e0f2fe', claims: [] },
                 'in-qa': { title: 'In QA', color: '#5b21b6', bgColor: '#ede9fe', claims: [] },
                 'closed': { title: 'Closed', color: '#10b981', bgColor: '#d1fae5', claims: [] }
             };
@@ -3227,7 +3243,7 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             });
             
             container.innerHTML = `
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; min-height: 600px;">
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; min-height: 600px;">
                     ${Object.entries(columns).map(([statusKey, col]) => `
                         <div class="kanban-column" data-status="${statusKey}" ondragover="event.preventDefault(); this.style.background='#f0f9ff'" ondragleave="this.style.background='#f8fafc'" ondrop="handleKanbanDrop(event, '${statusKey}')" style="background: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 12px; padding: 12px; transition: all 0.2s;">
                             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 8px 12px; background: ${col.bgColor}; border-radius: 8px;">
@@ -3283,7 +3299,7 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 await db.collection('users').doc(currentUser.uid).collection('claims').doc(claimId).update(updateData);
                 
                 // Auto-diary entry
-                const statusLabels = { 'new': 'New', 'in-progress': 'In Progress', 'in-qa': 'In QA', 'closed': 'Closed' };
+                const statusLabels = { 'new': 'New', 'in-progress': 'In Progress', 'inspected': 'Inspected', 'in-qa': 'In QA', 'closed': 'Closed' };
                 await db.collection('users').doc(currentUser.uid).collection('diary').add({
                     claimId: claimId,
                     text: `Status changed: ${statusLabels[claim.status] || claim.status} → ${statusLabels[newStatus] || newStatus}`,
@@ -4591,7 +4607,7 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             document.getElementById('editClaimId').value = claim.claimId || '';
             document.getElementById('editXaId').value = claim.xaId || '';
             document.getElementById('editClaimantName').value = claim.claimantName || '';
-            document.getElementById('editClaimFirm').value = claim.firm || '';
+            populateFirmDropdown('editClaimFirm', claim.firm || '');
             document.getElementById('editProperty').value = claim.property || '';
             document.getElementById('editContactPhone').value = claim.contactPhone || '';
             document.getElementById('editDateReported').value = claim.dateReported || '';
@@ -5448,6 +5464,14 @@ Click OK to confirm.`);
             return { amount: total, breakdown: breakdownLines.join('\n'), isTandE, carrier: carrier.name };
         }
 
+        // Helper: populate firm dropdown
+        function populateFirmDropdown(selectId, selectedFirm) {
+            const sel = document.getElementById(selectId);
+            if (!sel) return;
+            sel.innerHTML = '<option value="">— select firm —</option>' +
+                allFirms.map(f => `<option value="${f.name}" ${f.name === selectedFirm ? 'selected' : ''}>${f.name}</option>`).join('');
+        }
+
         // Helper: populate carrier dropdown from a firm name
         function populateCarrierDropdown(selectId, firmName, selectedCarrier) {
             const sel = document.getElementById(selectId);
@@ -5983,6 +6007,28 @@ Click OK to confirm.`);
             openModal('commissionModal');
         }
         
+        function autoCalcCommission() {
+            const claimId = document.getElementById('commissionClaimId').value;
+            const claim = allClaims.find(c => c.id === claimId);
+            if (!claim) return;
+            const firm = allFirms.find(f => f.name === claim.firm);
+            if (!firm || !firm.carriers || firm.carriers.length === 0) {
+                document.getElementById('commissionBreakdown').textContent = 'No firm/carrier configured — enter amount manually';
+                return;
+            }
+            const result = calculateExpectedCommission(claim, firm);
+            if (result.isTandE) {
+                document.getElementById('commissionBreakdown').textContent = 'T&E claim — manual billing required';
+                return;
+            }
+            if (result.amount > 0) {
+                document.getElementById('expectedCommission').value = result.amount.toFixed(2);
+                document.getElementById('commissionBreakdown').textContent = result.breakdown;
+            } else {
+                document.getElementById('commissionBreakdown').textContent = result.breakdown || 'Could not calculate — check RCV and carrier on claim';
+            }
+        }
+
         function recalcExpectedPayment() {
             const claimId = document.getElementById('commissionClaimId').value;
             const claim = allClaims.find(c => c.id === claimId);

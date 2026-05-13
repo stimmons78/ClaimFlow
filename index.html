@@ -1202,25 +1202,64 @@
                 <!-- Left Side - Claims List -->
                 <div class="content-left" id="content-left">
                     <div id="dashboard-view" class="view active">
-                        <div class="stats-grid">
-                            <div class="stat-card">
+                        <!-- Clickable Stat Cards -->
+                        <div class="stats-grid" style="margin-bottom: 24px;">
+                            <div class="stat-card" onclick="jumpToClaimsFilter('','')" style="cursor:pointer;" title="View all claims">
                                 <div class="stat-label">Total Claims</div>
                                 <div class="stat-value" id="totalClaims">0</div>
+                                <div style="font-size:10px;color:#94a3b8;margin-top:4px;">click to view →</div>
                             </div>
-                            <div class="stat-card">
-                                <div class="stat-label">Active</div>
+                            <div class="stat-card" onclick="jumpToClaimsFilter('status','new')" style="cursor:pointer;" title="View new claims">
+                                <div class="stat-label">New</div>
                                 <div class="stat-value" id="activeClaims">0</div>
+                                <div style="font-size:10px;color:#94a3b8;margin-top:4px;">click to view →</div>
                             </div>
-                            <div class="stat-card">
+                            <div class="stat-card" onclick="jumpToClaimsFilter('type','cat')" style="cursor:pointer;" title="View CAT claims">
                                 <div class="stat-label">CAT Claims</div>
                                 <div class="stat-value" id="catClaims">0</div>
+                                <div style="font-size:10px;color:#94a3b8;margin-top:4px;">click to view →</div>
                             </div>
-                            <div class="stat-card">
+                            <div class="stat-card" onclick="jumpToClaimsFilter('week','')" style="cursor:pointer;" title="View this week's claims">
                                 <div class="stat-label">This Week</div>
                                 <div class="stat-value" id="weekClaims">0</div>
+                                <div style="font-size:10px;color:#94a3b8;margin-top:4px;">click to view →</div>
+                            </div>
+                            <div class="stat-card" onclick="jumpToClaimsFilter('status','in-qa')" style="cursor:pointer;" title="View claims in QA">
+                                <div class="stat-label">In QA</div>
+                                <div class="stat-value" id="inQaClaims">0</div>
+                                <div style="font-size:10px;color:#94a3b8;margin-top:4px;">click to view →</div>
+                            </div>
+                            <div class="stat-card" onclick="jumpToClaimsFilter('status','in-progress')" style="cursor:pointer;" title="View in progress">
+                                <div class="stat-label">In Progress</div>
+                                <div class="stat-value" id="inProgressClaims">0</div>
+                                <div style="font-size:10px;color:#94a3b8;margin-top:4px;">click to view →</div>
+                            </div>
+                            <div class="stat-card" onclick="jumpToClaimsFilter('status','inspected')" style="cursor:pointer;" title="View inspected">
+                                <div class="stat-label">Inspected</div>
+                                <div class="stat-value" id="inspectedClaims">0</div>
+                                <div style="font-size:10px;color:#94a3b8;margin-top:4px;">click to view →</div>
+                            </div>
+                            <div class="stat-card" onclick="jumpToClaimsFilter('status','closed')" style="cursor:pointer;" title="View closed claims">
+                                <div class="stat-label">Closed</div>
+                                <div class="stat-value" id="closedClaims">0</div>
+                                <div style="font-size:10px;color:#94a3b8;margin-top:4px;">click to view →</div>
                             </div>
                         </div>
-                        <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 16px; color: #2c3e50;">Recent Claims</h3>
+
+                        <!-- Needs Attention -->
+                        <div id="needsAttentionSection" style="margin-bottom: 24px; display:none;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                                <h3 style="font-size:14px;font-weight:700;color:#dc2626;margin:0;">⚠️ Needs Attention</h3>
+                                <span id="attentionCount" style="font-size:11px;background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:10px;font-weight:700;"></span>
+                            </div>
+                            <div id="needsAttentionList" style="display:flex;flex-direction:column;gap:8px;"></div>
+                        </div>
+
+                        <!-- Recent Claims -->
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                            <h3 style="font-size:14px;font-weight:700;color:#0f172a;margin:0;">Recent Claims</h3>
+                            <button onclick="jumpToClaimsFilter('','')" style="font-size:11px;color:#6366f1;background:none;border:none;cursor:pointer;font-weight:600;font-family:inherit;">View All →</button>
+                        </div>
                         <div class="claims-grid" id="dashboardClaimsList"></div>
                     </div>
 
@@ -2415,6 +2454,7 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
                 updateOverdueCounts();
                 checkOverduePayments();
                 checkSLAAlerts();
+                updateFirmFilter(); // keep firm dropdown in sync with latest data
             } catch (error) {
                 console.error('Error loading data:', error);
             }
@@ -2936,15 +2976,146 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
 
         // Dashboard
         function renderDashboard() {
+            const now = new Date();
+            const weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7);
+            const today = now.toISOString().split('T')[0];
+
+            // ── Stat Cards ──────────────────────────────────────────
             document.getElementById('totalClaims').textContent = allClaims.length;
-            document.getElementById('activeClaims').textContent = allClaims.filter(c => c.status !== 'closed').length;
+            document.getElementById('activeClaims').textContent = allClaims.filter(c => c.status === 'new').length;
             document.getElementById('catClaims').textContent = allClaims.filter(c => c.claimType === 'cat').length;
-
-            const weekAgo = new Date();
-            weekAgo.setDate(weekAgo.getDate() - 7);
             document.getElementById('weekClaims').textContent = allClaims.filter(c => new Date(c.createdAt?.toDate?.() || c.createdAt) > weekAgo).length;
+            document.getElementById('inQaClaims').textContent = allClaims.filter(c => c.status === 'in-qa').length;
+            document.getElementById('inProgressClaims').textContent = allClaims.filter(c => c.status === 'in-progress').length;
+            document.getElementById('inspectedClaims').textContent = allClaims.filter(c => c.status === 'inspected').length;
+            document.getElementById('closedClaims').textContent = allClaims.filter(c => c.status === 'closed').length;
 
-            const recentClaims = [...allClaims].sort((a, b) => new Date(b.createdAt?.toDate?.() || b.createdAt) - new Date(a.createdAt?.toDate?.() || a.createdAt)).slice(0, 8);
+            // ── Needs Attention ─────────────────────────────────────
+            const attention = [];
+
+            // Overdue inspections (scheduled but past due, not completed)
+            allSchedules.forEach(s => {
+                if (s.completed) return;
+                if (!s.activity?.toLowerCase().includes('inspection')) return;
+                const schedDate = s.dateTime ? new Date(s.dateTime) : null;
+                if (schedDate && schedDate < now) {
+                    const claim = allClaims.find(c => c.id === s.claimId);
+                    if (claim && claim.status !== 'closed') {
+                        attention.push({
+                            type: 'overdue-inspection',
+                            icon: '📅',
+                            label: 'Overdue Inspection',
+                            claimId: claim.id,
+                            claimNum: claim.claimId,
+                            claimant: claim.claimantName,
+                            detail: `Was scheduled ${schedDate.toLocaleDateString()}`,
+                            color: '#dc2626',
+                            bg: '#fee2e2'
+                        });
+                    }
+                }
+            });
+
+            // SLA breach — inspection overdue
+            allClaims.forEach(claim => {
+                if (claim.status === 'closed' || claim.status === 'in-qa') return;
+                const firm = allFirms.find(f => f.name === claim.firm);
+                if (!firm?.inspectionSLA) return;
+                const reported = new Date(claim.dateReported);
+                if (isNaN(reported)) return;
+                const deadline = new Date(reported);
+                deadline.setDate(deadline.getDate() + parseInt(firm.inspectionSLA));
+                if (deadline < now && claim.status === 'new') {
+                    const alreadyAdded = attention.find(a => a.claimId === claim.id && a.type === 'overdue-inspection');
+                    if (!alreadyAdded) {
+                        attention.push({
+                            type: 'sla-inspection',
+                            icon: '⚠️',
+                            label: 'SLA Breach — Inspection',
+                            claimId: claim.id,
+                            claimNum: claim.claimId,
+                            claimant: claim.claimantName,
+                            detail: `${firm.inspectionSLA}-day SLA passed (${firm.name})`,
+                            color: '#d97706',
+                            bg: '#fef3c7'
+                        });
+                    }
+                }
+            });
+
+            // Overdue payments
+            allCommissions.forEach(comm => {
+                if (comm.paymentStatus === 'paid') return;
+                if (!comm.expectedPaymentDate) return;
+                if (comm.expectedPaymentDate < today) {
+                    const claim = allClaims.find(c => c.id === comm.claimId);
+                    if (!claim) return;
+                    const daysOver = Math.floor((now - new Date(comm.expectedPaymentDate)) / 86400000);
+                    attention.push({
+                        type: 'overdue-payment',
+                        icon: '💰',
+                        label: `Payment ${daysOver}d Overdue`,
+                        claimId: claim.id,
+                        claimNum: claim.claimId,
+                        claimant: claim.claimantName,
+                        detail: `Expected $${(comm.expectedAmount||0).toFixed(2)} — ${claim.firm}`,
+                        color: '#7c3aed',
+                        bg: '#ede9fe',
+                        commId: comm.id
+                    });
+                }
+            });
+
+            // Overdue tasks
+            allTasks.forEach(task => {
+                if (task.completed) return;
+                if (!task.dueDate) return;
+                if (task.dueDate < today) {
+                    const claim = allClaims.find(c => c.id === task.claimId);
+                    if (!claim || claim.status === 'closed') return;
+                    attention.push({
+                        type: 'overdue-task',
+                        icon: '✓',
+                        label: 'Overdue Task',
+                        claimId: claim.id,
+                        claimNum: claim.claimId,
+                        claimant: claim.claimantName,
+                        detail: task.text?.substring(0, 60) || 'Task overdue',
+                        color: '#0369a1',
+                        bg: '#e0f2fe'
+                    });
+                }
+            });
+
+            // Render Needs Attention
+            const section = document.getElementById('needsAttentionSection');
+            const list = document.getElementById('needsAttentionList');
+            const countEl = document.getElementById('attentionCount');
+            if (attention.length > 0) {
+                section.style.display = 'block';
+                countEl.textContent = `${attention.length} item${attention.length !== 1 ? 's' : ''}`;
+                list.innerHTML = attention.slice(0, 10).map(item => `
+                    <div onclick="openClaimDetail('${item.claimId}')" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:#fff;border:1px solid ${item.color}33;border-left:4px solid ${item.color};border-radius:8px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='${item.bg}'" onmouseout="this.style.background='#fff'">
+                        <div style="font-size:18px;">${item.icon}</div>
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-size:12px;font-weight:700;color:${item.color};">${item.label}</div>
+                            <div style="font-size:13px;font-weight:600;color:#0f172a;">${item.claimNum} — ${item.claimant}</div>
+                            <div style="font-size:11px;color:#64748b;margin-top:1px;">${item.detail}</div>
+                        </div>
+                        <div style="font-size:11px;color:#94a3b8;flex-shrink:0;">View →</div>
+                    </div>
+                `).join('');
+                if (attention.length > 10) {
+                    list.innerHTML += `<div style="text-align:center;font-size:12px;color:#94a3b8;padding:8px;">+${attention.length - 10} more — check Tasks, Schedule, and Commissions</div>`;
+                }
+            } else {
+                section.style.display = 'none';
+            }
+
+            // ── Recent Claims ────────────────────────────────────────
+            const recentClaims = [...allClaims]
+                .sort((a, b) => new Date(b.createdAt?.toDate?.() || b.createdAt) - new Date(a.createdAt?.toDate?.() || a.createdAt))
+                .slice(0, 8);
 
             if (recentClaims.length === 0) {
                 document.getElementById('dashboardClaimsList').innerHTML = '<div class="empty-section">No claims yet. Create your first claim to get started.</div>';
@@ -2953,13 +3124,53 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
 
             document.getElementById('dashboardClaimsList').innerHTML = recentClaims.map(claim => `
                 <div class="claim-card" ondblclick="openClaimDetail('${claim.id}')">
-                    <div class="claim-id">${claim.claimId}</div>
+                    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:4px;">
+                        <div class="claim-id">${claim.claimId}</div>
+                        <div style="display:flex;gap:4px;">${getPlatformBadge(claim.platform)}${claim.claimType === 'cat' ? '<span style="background:linear-gradient(135deg,#fbbf24,#f59e0b);color:white;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;">CAT</span>' : ''}</div>
+                    </div>
                     <div class="claim-info"><strong>${claim.claimantName}</strong></div>
-                    <div class="claim-info">${claim.property}</div>
+                    <div class="claim-info">📍 ${claim.property}</div>
                     <div class="claim-info">${claim.typeOfLoss}</div>
-                    <div style="margin-top: 10px;"><span class="claim-status status-${claim.status}">${claim.status.replace('-', ' ').toUpperCase()}</span></div>
+                    <div class="claim-info" style="font-size:11px;color:#94a3b8;">${claim.firm || ''}</div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+                        <span class="claim-status status-${claim.status}">${claim.status.replace('-', ' ').toUpperCase()}</span>
+                        <button onclick="event.stopPropagation();openClaimDetail('${claim.id}')" style="font-size:11px;color:#6366f1;background:none;border:none;cursor:pointer;font-weight:600;font-family:inherit;">Open →</button>
+                    </div>
                 </div>
             `).join('');
+        }
+
+        // Jump to All Claims with a pre-applied filter
+        function jumpToClaimsFilter(filterType, filterValue) {
+            // Navigate to claims view
+            document.querySelectorAll('[data-view]').forEach(i => i.classList.remove('active'));
+            const claimsNav = document.querySelector('[data-view="claims"]');
+            if (claimsNav) claimsNav.classList.add('active');
+            showView('claims');
+
+            // Apply filter
+            const statusEl = document.getElementById('filterStatus');
+            const typeEl = document.getElementById('filterType');
+            const firmEl = document.getElementById('filterFirm');
+            if (statusEl) statusEl.value = '';
+            if (typeEl) typeEl.value = '';
+            if (firmEl) firmEl.value = '';
+
+            if (filterType === 'status' && statusEl) statusEl.value = filterValue;
+            if (filterType === 'type' && typeEl) typeEl.value = filterValue;
+
+            // For "this week" filter — use search to find recent claims
+            if (filterType === 'week') {
+                const weekAgo = new Date();
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                // Sort by date created descending so recent are first
+                const sortEl = document.getElementById('sortBy');
+                const orderEl = document.getElementById('sortOrder');
+                if (sortEl) sortEl.value = 'createdAt';
+                if (orderEl) orderEl.value = 'desc';
+            }
+
+            renderClaimsList();
         }
 
         let claimsViewMode = localStorage.getItem('claimsViewMode') || 'card';
@@ -3087,7 +3298,7 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             }
             
             // Filter by firm
-            if (filterFirm) filtered = filtered.filter(c => c.firm === filterFirm);
+            if (filterFirm) filtered = filtered.filter(c => (c.firm || '').toLowerCase() === filterFirm.toLowerCase());
             
             // Sort
             filtered.sort((a, b) => {
@@ -3128,26 +3339,18 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             } else if (claimsViewMode === 'map') {
                 renderClaimsMapView(filtered);
             }
-            
-            updateFirmFilter();
         }
         
-        function updateFirmFilter(preserveSelection = true) {
+        function updateFirmFilter() {
             const firmFilter = document.getElementById('filterFirm');
             if (!firmFilter) return;
-            
-            // Only preserve selection if explicitly requested (user changed it)
-            const currentValue = preserveSelection ? firmFilter.value : '';
-            // Merge firms from claims AND from the firms setup list
+            const currentValue = firmFilter.value; // preserve whatever user has selected
             const firmsFromClaims = allClaims.map(c => c.firm).filter(f => f);
             const firmsFromSetup = allFirms.map(f => f.name).filter(f => f);
             const firms = [...new Set([...firmsFromClaims, ...firmsFromSetup])].sort();
-            
-            firmFilter.innerHTML = '<option value="">All Firms</option>' + 
+            firmFilter.innerHTML = '<option value="">All Firms</option>' +
                 firms.map(f => `<option value="${f}" ${f === currentValue ? 'selected' : ''}>${f}</option>`).join('');
-            
-            // Always ensure value is set (browser may auto-select first option)
-            firmFilter.value = currentValue;
+            firmFilter.value = currentValue; // restore selection after rebuild
         }
         
         function getPlatformBadge(platform) {
@@ -3520,11 +3723,11 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
         }
         
         function renderClaimsList() {
-            updateFirmFilter(false);
+            updateFirmFilter(); // rebuild firm options, preserve any selection
             // Restore last used view
             const savedView = localStorage.getItem('claimsViewMode') || 'card';
             if (savedView !== claimsViewMode) {
-                setClaimsView(savedView);
+                setClaimsView(savedView); // setClaimsView calls filterClaims internally
             } else {
                 filterClaims();
             }

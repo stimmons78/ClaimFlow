@@ -1659,6 +1659,18 @@
                         </select>
                     </div>
                 </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="editClaimStatus">
+                            <option value="new">New</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="inspected">Inspected</option>
+                            <option value="in-qa">In QA</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                    </div>
+                </div>
                 <div class="form-grid full">
                     <div class="form-group">
                         <label>Description</label>
@@ -4613,6 +4625,7 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             document.getElementById('editDateReported').value = claim.dateReported || '';
             document.getElementById('editDateOfLoss').value = claim.dateOfLoss || '';
             document.getElementById('editClaimType').value = claim.claimType || 'daily';
+            document.getElementById('editClaimStatus').value = claim.status || 'new';
             document.getElementById('editClaimDescription').value = claim.description || '';
             document.getElementById('editPropertyType').value = claim.propertyType || 'residential';
             document.getElementById('editClaimRcv').value = claim.rcv || '';
@@ -4647,45 +4660,167 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             e.preventDefault();
             if (!selectedClaimId || !currentUser) return;
 
+            const uid = currentUser.uid;
+            const oldClaim = allClaims.find(c => c.id === selectedClaimId);
+            if (!oldClaim) return;
+
+            const newStatus  = document.getElementById('editClaimStatus').value;
+            const newFirm    = document.getElementById('editClaimFirm').value;
+            const newCarrier = document.getElementById('editClaimCarrier').value || null;
+            const newRcv     = parseFloat(document.getElementById('editClaimRcv').value) || null;
+
             const updatedData = {
-                claimId: document.getElementById('editClaimId').value,
-                xaId: document.getElementById('editXaId').value || null,
-                claimantName: document.getElementById('editClaimantName').value,
-                firm: document.getElementById('editClaimFirm').value,
-                property: document.getElementById('editProperty').value,
-                typeOfLoss: document.getElementById('editTypeOfLoss').value,
-                contactPhone: document.getElementById('editContactPhone').value || null,
-                dateReported: document.getElementById('editDateReported').value,
-                dateOfLoss: document.getElementById('editDateOfLoss').value,
-                claimType: document.getElementById('editClaimType').value,
-                propertyType: document.getElementById('editPropertyType').value || 'residential',
-                rcv: parseFloat(document.getElementById('editClaimRcv').value) || null,
-                carrier: document.getElementById('editClaimCarrier').value || null,
-                miles: parseFloat(document.getElementById('editClaimMiles').value) || 0,
-                isDenial: document.getElementById('editClaimIsDenial').checked,
-                isWithdrawn: document.getElementById('editClaimIsWithdrawn').checked,
-                isSupplement: document.getElementById('editClaimIsSupplement').checked,
+                claimId:        document.getElementById('editClaimId').value,
+                xaId:           document.getElementById('editXaId').value || null,
+                claimantName:   document.getElementById('editClaimantName').value,
+                firm:           newFirm,
+                property:       document.getElementById('editProperty').value,
+                typeOfLoss:     document.getElementById('editTypeOfLoss').value,
+                contactPhone:   document.getElementById('editContactPhone').value || null,
+                dateReported:   document.getElementById('editDateReported').value,
+                dateOfLoss:     document.getElementById('editDateOfLoss').value,
+                claimType:      document.getElementById('editClaimType').value,
+                status:         newStatus,
+                propertyType:   document.getElementById('editPropertyType').value || 'residential',
+                rcv:            newRcv,
+                carrier:        newCarrier,
+                miles:          parseFloat(document.getElementById('editClaimMiles').value) || 0,
+                isDenial:       document.getElementById('editClaimIsDenial').checked,
+                isWithdrawn:    document.getElementById('editClaimIsWithdrawn').checked,
+                isSupplement:   document.getElementById('editClaimIsSupplement').checked,
                 isReinspection: document.getElementById('editClaimIsReinspection').checked,
-                isTandE: document.getElementById('editClaimIsTandE').checked,
-                description: document.getElementById('editClaimDescription').value,
-                updatedAt: new Date()
+                isTandE:        document.getElementById('editClaimIsTandE').checked,
+                description:    document.getElementById('editClaimDescription').value,
+                updatedAt:      new Date()
             };
 
             try {
-                await db.collection('users').doc(currentUser.uid).collection('claims').doc(selectedClaimId).update(updatedData);
+                // ── 1. Save claim ──────────────────────────────────────
+                await db.collection('users').doc(uid).collection('claims').doc(selectedClaimId).update(updatedData);
 
-                await db.collection('users').doc(currentUser.uid).collection('diary').add({
-                    claimId: selectedClaimId,
-                    text: `✏️ Claim details updated`,
-                    createdAt: new Date(),
-                    auto: true
-                });
+                const diaryRef = db.collection('users').doc(uid).collection('diary');
+                const statusLabels = { 'new':'New','in-progress':'In Progress','inspected':'Inspected','in-qa':'In QA','closed':'Closed' };
 
+                // ── 2. Diary — field-level changes ─────────────────────
+                const changes = [];
+                if (oldClaim.status !== newStatus)
+                    changes.push(`Status: ${statusLabels[oldClaim.status] || oldClaim.status} → ${statusLabels[newStatus] || newStatus}`);
+                if ((oldClaim.firm || '') !== newFirm)
+                    changes.push(`Firm: ${oldClaim.firm || '—'} → ${newFirm}`);
+                if ((oldClaim.carrier || '') !== (newCarrier || ''))
+                    changes.push(`Carrier: ${oldClaim.carrier || '—'} → ${newCarrier || '—'}`);
+                if ((oldClaim.rcv || 0) !== (newRcv || 0))
+                    changes.push(`RCV: $${(oldClaim.rcv||0).toLocaleString()} → $${(newRcv||0).toLocaleString()}`);
+
+                const diaryText = changes.length
+                    ? `✏️ Claim updated — ${changes.join(' | ')}`
+                    : `✏️ Claim details updated`;
+
+                await diaryRef.add({ claimId: selectedClaimId, text: diaryText, createdAt: new Date(), auto: true });
+
+                // ── 3. Commission cascade ──────────────────────────────
+                const firm = allFirms.find(f => f.name === newFirm);
+                const existingCommission = allCommissions.find(c => c.claimId === selectedClaimId);
+                const mergedClaim = { ...oldClaim, ...updatedData };
+
+                // A) Newly closed → create/update commission record
+                if (newStatus === 'closed' && oldClaim.status !== 'closed') {
+                    if (firm) {
+                        const closeDateStr = new Date().toISOString().split('T')[0];
+                        const expectedPayDateStr = calculateNextPayDate(closeDateStr, firm);
+                        const expectedPaymentDate = expectedPayDateStr ? new Date(expectedPayDateStr + 'T12:00:00') : null;
+                        const calc = calculateExpectedCommission(mergedClaim, firm);
+                        const expectedAmount = calc.amount || 0;
+
+                        const commissionData = {
+                            claimId: selectedClaimId,
+                            expectedAmount,
+                            paymentStatus: 'pending',
+                            closeDate: closeDateStr,
+                            expectedPaymentDate: expectedPayDateStr || null,
+                            updatedAt: new Date()
+                        };
+                        if (existingCommission) {
+                            await db.collection('users').doc(uid).collection('commissions').doc(existingCommission.id).update(commissionData);
+                        } else {
+                            commissionData.createdAt = new Date();
+                            await db.collection('users').doc(uid).collection('commissions').add(commissionData);
+                        }
+                        const cycleLabel = formatPayCycle(firm);
+                        await diaryRef.add({
+                            claimId: selectedClaimId,
+                            text: `💰 File closed - Payment expected by ${expectedPaymentDate ? expectedPaymentDate.toLocaleDateString() : 'TBD'} (${cycleLabel} — ${firm.name})`,
+                            createdAt: new Date(), auto: true
+                        });
+                    }
+                }
+
+                // B) Already closed, but RCV/carrier/firm changed → recalc commission
+                else if (newStatus === 'closed' && existingCommission && firm) {
+                    const commissionChanged =
+                        (oldClaim.rcv !== newRcv) ||
+                        (oldClaim.carrier !== newCarrier) ||
+                        (oldClaim.firm !== newFirm) ||
+                        (oldClaim.isDenial !== updatedData.isDenial) ||
+                        (oldClaim.isWithdrawn !== updatedData.isWithdrawn) ||
+                        (oldClaim.isSupplement !== updatedData.isSupplement) ||
+                        (oldClaim.isReinspection !== updatedData.isReinspection) ||
+                        (oldClaim.miles !== updatedData.miles);
+
+                    if (commissionChanged) {
+                        const calc = calculateExpectedCommission(mergedClaim, firm);
+                        const closeDateStr = existingCommission.closeDate || new Date().toISOString().split('T')[0];
+                        const expectedPayDateStr = calculateNextPayDate(closeDateStr, firm);
+                        await db.collection('users').doc(uid).collection('commissions').doc(existingCommission.id).update({
+                            expectedAmount: calc.amount || 0,
+                            expectedPaymentDate: expectedPayDateStr || null,
+                            updatedAt: new Date()
+                        });
+                        await diaryRef.add({
+                            claimId: selectedClaimId,
+                            text: `💰 Commission recalculated: $${(calc.amount||0).toFixed(2)} (${(calc.breakdown||'updated').replace(/\n[\s\S]*/,'')})`, 
+                            createdAt: new Date(), auto: true
+                        });
+                    }
+                }
+
+                // C) Reopened from closed → mark commission as pending review
+                else if (oldClaim.status === 'closed' && newStatus !== 'closed' && existingCommission) {
+                    await db.collection('users').doc(uid).collection('commissions').doc(existingCommission.id).update({
+                        paymentStatus: 'pending',
+                        closeDate: null,
+                        expectedPaymentDate: null,
+                        updatedAt: new Date()
+                    });
+                    await diaryRef.add({
+                        claimId: selectedClaimId,
+                        text: `⚠️ Claim reopened from Closed — commission marked pending review`,
+                        createdAt: new Date(), auto: true
+                    });
+                }
+
+                // ── 4. Reload all data + refresh every area ────────────
                 await loadUserData();
+
+                // Refresh current view
+                const activeSection = document.querySelector('.nav-item.active')?.dataset?.view || '';
+                if (activeSection === 'claims' || !activeSection) {
+                    filterClaims();
+                }
+                renderDashboard();
+
+                // Refresh commissions if open
+                if (typeof renderCommissionsView === 'function') {
+                    try { renderCommissionsView(); } catch(e) {}
+                }
+
+                // Refresh detail panel
                 openClaimDetail(selectedClaimId);
                 closeModal('editClaimModal');
+
             } catch (error) {
                 console.error('Error updating claim:', error);
+                alert('Error saving claim: ' + error.message);
             }
         }
         

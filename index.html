@@ -3110,7 +3110,10 @@ Notification triggered by: Alacrity IA" style="width: 100%; min-height: 200px; p
             if (!firmFilter) return;
             
             const currentValue = firmFilter.value;
-            const firms = [...new Set(allClaims.map(c => c.firm).filter(f => f))].sort();
+            // Merge firms from claims AND from the firms setup list
+            const firmsFromClaims = allClaims.map(c => c.firm).filter(f => f);
+            const firmsFromSetup = allFirms.map(f => f.name).filter(f => f);
+            const firms = [...new Set([...firmsFromClaims, ...firmsFromSetup])].sort();
             
             firmFilter.innerHTML = '<option value="">All Firms</option>' + 
                 firms.map(f => `<option value="${f}" ${f === currentValue ? 'selected' : ''}>${f}</option>`).join('');
